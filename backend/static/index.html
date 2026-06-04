@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BAIF Offline Translator</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; background: #f9f9f9; }
+    h1 { color: #0066cc; }
+    select, input, button { padding: 12px; margin: 8px 0; font-size: 16px; }
+    button { background: #0066cc; color: white; border: none; cursor: pointer; border-radius: 5px; }
+    button:hover { background: #0055aa; }
+    button:disabled { background: #999; cursor: not-allowed; }
+    .section { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    #status { margin: 15px 0; font-weight: bold; color: #333; }
+    #result { white-space: pre-wrap; background: white; padding: 15px; border-radius: 8px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <h1>BAIF Offline Translator</h1>
+  <p><strong>Status:</strong> ✅ Backend Connected</p>
+
+  <div class="section">
+    <h3>1. Transcription</h3>
+    <input type="file" id="mediaFile" accept="audio/*,video/*">
+    <br><br>
+    <button onclick="transcribe()">🚀 Transcribe</button>
+  </div>
+
+  <div class="section">
+    <h3>2. Translation</h3>
+    <select id="targetLang">
+      <option value="en">English</option>
+      <option value="hi">Hindi</option>
+      <option value="mr">Marathi</option>
+    </select>
+    <button onclick="translateText()">🌐 Translate</button>
+  </div>
+
+  <div class="section">
+    <h3>3. Text-to-Speech</h3>
+    <button onclick="generateTTS()" style="background:#28a745;">🔊 Generate Voice</button>
+    <p><small><i>TTS is under development (will be available soon)</i></small></p>
+    <div id="audioPlayer"></div>
+  </div>
+
+  <div id="status"></div>
+  <div id="result"></div>
+
+  <script>
+    let currentText = "";
+    let currentTranslatedText = "";
+
+    async function transcribe() {
+      const fileInput = document.getElementById('mediaFile');
+      const status = document.getElementById('status');
+      const resultDiv = document.getElementById('result');
+
+      if (!fileInput.files.length) {
+        alert("Please select a file");
+        return;
+      }
+
+      status.innerHTML = "⏳ Transcribing...";
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+
+      try {
+        const res = await fetch("/transcribe", { method: "POST", body: formData });
+        const data = await res.json();
+        
+        if (data.status === "success") {
+          currentText = data.transcribed_text;
+          currentTranslatedText = data.transcribed_text;
+          
+          status.innerHTML = "✅ Transcription Completed!";
+          resultDiv.innerHTML = `<strong>Transcribed Text:</strong><br><br>${currentText}`;
+        }
+      } catch (e) {
+        status.innerHTML = "❌ Transcription Failed";
+      }
+    }
+
+    async function translateText() {
+      const status = document.getElementById('status');
+      const resultDiv = document.getElementById('result');
+      const targetLang = document.getElementById('targetLang').value;
+
+      if (!currentText) {
+        alert("Please transcribe first!");
+        return;
+      }
+
+      status.innerHTML = "⏳ Translating...";
+      const formData = new FormData();
+      formData.append("text", currentText);
+      formData.append("target_lang", targetLang);
+
+      try {
+        const res = await fetch("/translate", { method: "POST", body: formData });
+        const data = await res.json();
+        
+        if (data.status === "success") {
+          currentTranslatedText = data.translated;
+          status.innerHTML = "✅ Translation Completed!";
+          
+          resultDiv.innerHTML = `
+            <strong>Original:</strong><br>${currentText}<br><br>
+            <strong>Translated (${targetLang}):</strong><br>${data.translated}
+          `;
+        }
+      } catch (e) {
+        status.innerHTML = "❌ Translation Failed";
+      }
+    }
+
+    async function generateTTS() {
+      const status = document.getElementById('status');
+      status.innerHTML = "⏳ TTS is under development...";
+      alert("Text-to-Speech feature is currently under development.\nIt will be available in the next update.");
+    }
+  </script>
+</body>
+</html>

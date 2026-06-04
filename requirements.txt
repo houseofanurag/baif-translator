@@ -1,0 +1,14 @@
+# Core Dependencies for BAIF Offline Translator
+
+fastapi
+uvicorn[standard]
+python-multipart
+mlx-whisper
+
+# Translation
+transformers
+sentencepiece
+sacremoses
+
+# Utils
+pydantic
