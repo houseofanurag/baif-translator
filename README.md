@@ -1,6 +1,6 @@
 # BAIF Offline Translator
 
-A fully **offline** translation application for BAIF that supports **Text, Audio, and Video** inputs with transcription, translation, and voice output.
+A fully **offline** translation application for BAIF that supports **Text, Audio, and Video** inputs with transcription, translation, voice output, SRT subtitles, and **burned-in subtitles**.
 
 ---
 
@@ -12,12 +12,14 @@ To provide a complete offline solution for transcribing, translating, and genera
 
 ## ✨ Features
 
-- Audio & Video file upload
+- Audio & Video file upload (MP4, MOV, AVI, WebM, MP3, WAV, etc.)
 - Speech-to-Text Transcription
 - Translation (English ↔ Hindi ↔ Marathi)
 - Text-to-Speech (Voice Output)
 - SRT Subtitle Generation
+- **Burned-in Subtitles** (Hardcoded text into video)
 - Fully offline & open-source
+- Optimized for Apple Silicon (M1/M2)
 
 ---
 
@@ -26,12 +28,13 @@ To provide a complete offline solution for transcribing, translating, and genera
 | Component            | Technology / Model                          | Purpose |
 |----------------------|---------------------------------------------|-------|
 | **Backend**          | FastAPI (Python)                            | Main server & API |
-| **Transcription**    | MLX Whisper (`whisper-base-mlx`)            | Speech-to-Text (optimized for Apple Silicon) |
+| **Transcription**    | MLX Whisper (`whisper-base-mlx`)            | Speech-to-Text (Apple Silicon optimized) |
 | **Translation**      | Helsinki-NLP OPUS-MT models                 | Text translation |
-| **Text-to-Speech**   | macOS `say` (English) + Piper (planned)     | Voice output |
+| **Text-to-Speech**   | macOS `say` (English)                       | Voice output |
 | **SRT Generation**   | Custom logic with timestamps                | Subtitle files |
+| **Burned-in Subtitles** | FFmpeg + libass                          | Hardcoded subtitles in video |
 | **Frontend**         | HTML + Tailwind CSS + JavaScript            | Modern responsive UI |
-| **Media Processing** | FFmpeg                                      | Audio/Video handling |
+| **Media Processing** | FFmpeg-full                                 | Required for burned subtitles |
 
 ---
 
@@ -40,4 +43,5 @@ To provide a complete offline solution for transcribing, translating, and genera
 ### 1. Setup (First Time Only)
 
 ```bash
+cd baif-translator
 ./setup.sh

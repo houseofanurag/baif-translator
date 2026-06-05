@@ -33,12 +33,11 @@ async def root():
     with open("src/frontend/static/index.html", "r", encoding="utf-8") as f:
         return f.read()
 
-# === Existing working endpoints ===
+# ====================== TRANSCRIPTION ======================
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
     file_path = None
     try:
-        # Keep unique naming but retain original structure
         file_path = UPLOAD_DIR / f"transcribe_{uuid.uuid4().hex[:8]}_{file.filename}"
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
@@ -68,6 +67,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
             try: os.remove(file_path)
             except: pass
 
+# ====================== TRANSLATION ======================
 @app.post("/translate")
 async def translate(text: str = Form(...), target_lang: str = Form("hi")):
     try:
@@ -88,6 +88,7 @@ async def translate(text: str = Form(...), target_lang: str = Form("hi")):
             "target_lang": target_lang
         }, status_code=200)
 
+# ====================== TTS ======================
 @app.post("/tts")
 async def text_to_speech(text: str = Form(...), lang: str = Form("en")):
     try:
@@ -103,6 +104,7 @@ async def text_to_speech(text: str = Form(...), lang: str = Form("en")):
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
+# ====================== SRT ======================
 def create_srt(segments, output_path):
     with open(output_path, "w", encoding="utf-8") as f:
         for i, segment in enumerate(segments, 1):
@@ -133,30 +135,26 @@ async def generate_srt(segments: str = Form(...), filename: str = Form("audio"))
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
-# ====================== BURNED-IN SUBTITLES (CLEAN ABSOLUTE ESCAPING) ======================
+# ====================== BURNED-IN SUBTITLES (Improved Escaping) ======================
 @app.post("/burn_subtitles")
 async def burn_subtitles(original_video: UploadFile = File(...), srt_filename: str = Form(...)):
     video_path = None
     try:
-        unique_id = uuid.uuid4().hex[:8]
-        video_path = UPLOAD_DIR / f"burn_{unique_id}_{original_video.filename}"
-        
+        video_path = UPLOAD_DIR / f"burn_{uuid.uuid4().hex[:8]}_{original_video.filename}"
         with open(video_path, "wb") as buffer:
             shutil.copyfileobj(original_video.file, buffer)
         
-        source_srt_path = OUTPUT_DIR / srt_filename
-        if not source_srt_path.exists():
+        srt_path = OUTPUT_DIR / srt_filename
+        if not srt_path.exists():
             return JSONResponse({"status": "error", "message": "SRT file not found"}, status_code=400)
         
-        output_path = OUTPUT_DIR / f"burned_{unique_id}.mp4"
+        output_path = OUTPUT_DIR / f"burned_{uuid.uuid4().hex[:8]}.mp4"
         
-        # Standard libass format escaping for absolute paths on macOS:
-        # Colons are escaped with backslashes, single quotes are replaced with escaped versions, 
-        # and the whole path is cleanly wrapped inside a filter property literal string.
-        escaped_srt_path = str(source_srt_path.absolute()).replace("\\", "/").replace(":", "\\:").replace("'", "'\\\\''")
+        # Best escaping for macOS + spaces in filename
+        escaped_srt_path = str(srt_path.absolute()).replace("\\", "/").replace(":", "\\:").replace("'", "'\\\\''")
         vf_filter = f"subtitles='{escaped_srt_path}'"
         
-        print(f"Executing standard filter syntax: {vf_filter}")
+        print(f"Using filter: {vf_filter}")
         
         cmd = [
             "ffmpeg", "-i", str(video_path),
@@ -170,7 +168,7 @@ async def burn_subtitles(original_video: UploadFile = File(...), srt_filename: s
         
         if result.returncode != 0:
             print("FFmpeg Error:", result.stderr)
-            return JSONResponse({"status": "error", "message": "FFmpeg failed to burn subtitles"}, status_code=500)
+            return JSONResponse({"status": "error", "message": "Failed to burn subtitles"}, status_code=500)
         
         return {
             "status": "success",

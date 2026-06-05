@@ -1,21 +1,9 @@
-# BAIF Offline Translator - Requirements
-
-# Core Framework
 fastapi
 uvicorn[standard]
 python-multipart
-
-# Transcription (Whisper)
 mlx-whisper
-
-# Translation
 transformers
-sentencepiece
-sacremoses
-
-# Media & Utils
-ffmpeg-python
-pydantic
-
-# For SRT & File Handling
-uuid
+torch
+torchaudio
+numpy
+pillow

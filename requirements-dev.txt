@@ -1,16 +1,4 @@
-# Development Requirements
-
--r requirements.txt
-
-# Development Tools
 black
-isort
 flake8
-mypy
 pytest
 httpx
-rich
-python-dotenv
-
-# Optional
-jupyter
