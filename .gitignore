@@ -2,12 +2,36 @@
 venv/
 .venv/
 env/
+ENV/
 
-# Python Cache
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.Python
 
-# macOS files
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Project specific
+uploads/
+outputs/
+*.wav
+*.mp3
+*.mp4
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
