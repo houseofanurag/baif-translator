@@ -9,12 +9,19 @@
   <style>
     body { font-family: 'Inter', system-ui, sans-serif; }
     .heading-font { font-family: 'Space Grotesk', sans-serif; }
-    .glass { background: rgba(255, 255, 255, 0.97); backdrop-filter: blur(12px); }
+    
+    .glass-card {
+      background: rgba(255, 255, 255, 0.97);
+      backdrop-filter: blur(12px);
+      border: 1px solid #e2e8f0;
+      border-radius: 24px;
+      box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
   </style>
 </head>
 <body class="bg-slate-50 min-h-screen">
 
-  <!-- Modern Header -->
+  <!-- Header -->
   <header class="bg-white shadow-sm sticky top-0 z-50 border-b">
     <div class="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -35,13 +42,13 @@
 
     <div class="text-center mb-12">
       <h2 class="text-5xl font-semibold heading-font text-slate-800 mb-3">Offline Translation Tool</h2>
-      <p class="text-slate-600 text-lg">For BAIF field teams — Works without internet</p>
+      <p class="text-slate-600 text-lg">Built for BAIF field teams</p>
     </div>
 
     <div class="grid md:grid-cols-2 gap-8">
 
       <!-- 1. Transcription -->
-      <div class="glass border border-slate-100 rounded-3xl p-8 shadow-xl">
+      <div class="glass-card p-8">
         <div class="flex items-center gap-4 mb-6">
           <i class="fas fa-microphone text-3xl text-blue-600"></i>
           <h3 class="text-2xl font-semibold">1. Transcription</h3>
@@ -55,7 +62,7 @@
       </div>
 
       <!-- 2. Translation -->
-      <div class="glass border border-slate-100 rounded-3xl p-8 shadow-xl">
+      <div class="glass-card p-8">
         <div class="flex items-center gap-4 mb-6">
           <i class="fas fa-language text-3xl text-emerald-600"></i>
           <h3 class="text-2xl font-semibold">2. Translation</h3>
@@ -111,7 +118,6 @@
       document.getElementById('translateBtn').disabled = !hasTranscription;
       document.getElementById('srtBtn').disabled = !hasTranscription;
       
-      // Enable Voice for English even without translation, or after translation for other languages
       const canGenerateVoice = hasTranscription && (targetLang === "en" || currentTranslatedText !== currentText);
       document.getElementById('ttsBtn').disabled = !canGenerateVoice;
     }
@@ -245,7 +251,7 @@
       }
     }
 
-    // Initialize button states
+    // Initialize
     updateButtonStates();
   </script>
 </body>
