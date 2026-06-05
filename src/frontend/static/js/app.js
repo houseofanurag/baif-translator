@@ -1,4 +1,6 @@
-// BAIF Offline Translator - Main JavaScript
+// ================================================
+// BAIF Offline Translator - Complete Working JS
+// ================================================
 
 let currentText = "";
 let currentTranslatedText = "";
@@ -10,15 +12,17 @@ function updateButtonStates() {
   const hasTranscription = currentText.length > 0;
   const hasTranslation = currentTranslatedText.length > 0;
   
-  document.getElementById('translateBtn').disabled = !hasTranscription;
-  document.getElementById('srtBtn').disabled = !hasTranscription;
-  document.getElementById('burnBtn').disabled = !hasTranscription;
-  document.getElementById('downloadBtn').disabled = !hasTranslation;
-  document.getElementById('ttsBtn').disabled = !hasTranscription;
+  if (document.getElementById('translateBtn')) document.getElementById('translateBtn').disabled = !hasTranscription;
+  if (document.getElementById('srtBtn')) document.getElementById('srtBtn').disabled = !hasTranscription;
+  if (document.getElementById('burnBtn')) document.getElementById('burnBtn').disabled = !hasTranscription;
+  if (document.getElementById('downloadBtn')) document.getElementById('downloadBtn').disabled = !hasTranslation;
+  if (document.getElementById('ttsBtn')) document.getElementById('ttsBtn').disabled = !hasTranscription;
 }
 
 function renderResult() {
   const container = document.getElementById('resultContent');
+  if (!container) return;
+
   let html = '';
 
   if (currentText) {
@@ -27,7 +31,7 @@ function renderResult() {
         <h4 class="font-semibold text-blue-700 mb-3 flex items-center gap-2">
           <i class="fas fa-file-alt"></i> Original Text
         </h4>
-        <div class="bg-slate-50 p-5 rounded-2xl text-slate-700 leading-relaxed whitespace-pre-wrap">${currentText}</div>
+        <div class="bg-slate-50 p-6 rounded-2xl text-slate-700 leading-relaxed whitespace-pre-wrap">${currentText}</div>
       </div>`;
   }
 
@@ -38,14 +42,23 @@ function renderResult() {
         <h4 class="font-semibold text-emerald-700 mb-3 flex items-center gap-2">
           <i class="fas fa-language"></i> Translated (${targetLang})
         </h4>
-        <div class="bg-emerald-50 p-5 rounded-2xl text-slate-700 leading-relaxed whitespace-pre-wrap">${currentTranslatedText}</div>
+        <div class="bg-emerald-50 p-6 rounded-2xl text-slate-700 leading-relaxed whitespace-pre-wrap">${currentTranslatedText}</div>
       </div>`;
   }
 
-  container.innerHTML = html || '<p class="text-slate-400 text-center py-12">Results will appear here after transcription...</p>';
+  container.innerHTML = html || '<p class="text-slate-400 text-center py-16">Results will appear here after transcription...</p>';
 }
 
-// ==================== History Management ====================
+function showStatus(message, isError = false) {
+  const status = document.getElementById('status');
+  if (!status) return;
+  status.classList.remove('hidden');
+  status.innerHTML = message;
+  status.style.color = isError ? '#ef4444' : '#10b981';
+  setTimeout(() => status.classList.add('hidden'), 7000);
+}
+
+// ==================== History ====================
 function saveToHistory() {
   if (!currentTranslatedText) return;
   const history = JSON.parse(localStorage.getItem('baif_history') || '[]');
@@ -63,6 +76,7 @@ function saveToHistory() {
 
 function renderHistory() {
   const container = document.getElementById('historyList');
+  if (!container) return;
   const history = JSON.parse(localStorage.getItem('baif_history') || '[]');
   if (history.length === 0) {
     container.innerHTML = '<p class="text-slate-400 text-sm italic">No previous translations yet.</p>';
@@ -80,20 +94,19 @@ function renderHistory() {
 function clearAll() {
   if (!confirm("Clear all current results?")) return;
 
-  currentText = "";
-  currentTranslatedText = "";
+  currentText = currentTranslatedText = "";
   currentSegments = [];
   currentFileName = "";
   currentSrtFileName = "";
 
   document.getElementById('mediaFile').value = "";
-  document.getElementById('fileName').textContent = "";
-  document.getElementById('resultContent').innerHTML = '<p class="text-slate-400 text-center py-12">Results will appear here after transcription...</p>';
+  const fileNameEl = document.getElementById('fileName');
+  if (fileNameEl) fileNameEl.textContent = "";
+
+  renderResult();
   document.getElementById('audioPlayer').innerHTML = "";
   document.getElementById('srtLink').innerHTML = "";
   document.getElementById('burnedVideoLink').innerHTML = "";
-  document.getElementById('status').innerHTML = "";
-
   updateButtonStates();
 }
 
@@ -101,22 +114,17 @@ function clearAll() {
 
 async function transcribe() {
   const fileInput = document.getElementById('mediaFile');
-  const status = document.getElementById('status');
-
   if (!fileInput.files.length) return alert("Please select a file");
 
   currentFileName = fileInput.files[0].name;
-  document.getElementById('fileName').textContent = `File: ${currentFileName}`;
+  const fileNameEl = document.getElementById('fileName');
+  if (fileNameEl) fileNameEl.textContent = `File: ${currentFileName}`;
 
-  // Clear previous
   currentText = currentTranslatedText = "";
   currentSegments = [];
-  document.getElementById('resultContent').innerHTML = "";
-  document.getElementById('audioPlayer').innerHTML = "";
-  document.getElementById('srtLink').innerHTML = "";
-  document.getElementById('burnedVideoLink').innerHTML = "";
+  renderResult();
 
-  status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Transcribing ${currentFileName}...`;
+  showStatus(`Transcribing ${currentFileName}...`);
 
   const formData = new FormData();
   formData.append("file", fileInput.files[0]);
@@ -127,21 +135,19 @@ async function transcribe() {
     if (data.status === "success") {
       currentText = currentTranslatedText = data.transcribed_text;
       currentSegments = data.segments || [];
-      status.innerHTML = `✅ Transcription Completed`;
+      showStatus("✅ Transcription Completed");
       renderResult();
       updateButtonStates();
     }
   } catch (e) {
-    status.innerHTML = `❌ Transcription Failed`;
+    showStatus("❌ Transcription Failed", true);
   }
 }
 
 async function translateText() {
-  const status = document.getElementById('status');
-  const targetLang = document.getElementById('targetLang').value;
   if (!currentText) return alert("Please transcribe first");
-
-  status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Translating...`;
+  const targetLang = document.getElementById('targetLang').value;
+  showStatus("Translating...");
 
   const formData = new FormData();
   formData.append("text", currentText);
@@ -152,49 +158,47 @@ async function translateText() {
     const data = await res.json();
     if (data.status === "success") {
       currentTranslatedText = data.translated;
-      status.innerHTML = `✅ Translation Completed`;
+      showStatus("✅ Translation Completed");
       renderResult();
       updateButtonStates();
       saveToHistory();
     }
   } catch (e) {
-    status.innerHTML = `❌ Translation Failed`;
+    showStatus("❌ Translation Failed", true);
   }
 }
 
 async function generateTTS() {
-  const status = document.getElementById('status');
-  const audioDiv = document.getElementById('audioPlayer');
+  if (!currentTranslatedText) return alert("Please translate first");
   const targetLang = document.getElementById('targetLang').value;
-  if (!currentTranslatedText) return;
 
-  status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Generating Voice...`;
+  if (targetLang !== "en") {
+    showStatus("🔊 Voice generation is currently available only for English.<br>Hindi & Marathi voices coming soon.", false);
+    return;
+  }
+
+  showStatus("Generating voice...");
 
   const formData = new FormData();
   formData.append("text", currentTranslatedText);
-  formData.append("lang", targetLang);
+  formData.append("lang", "en");
 
   try {
     const res = await fetch("/tts", { method: "POST", body: formData });
     const data = await res.json();
     if (data.status === "success" && data.audio_url) {
-      status.innerHTML = `✅ Voice Generated!`;
-      audioDiv.innerHTML = `<audio controls class="w-full mt-4"><source src="${data.audio_url}" type="audio/mp3"></audio>`;
-    } else {
-      status.innerHTML = data.message || `Voice not available for ${targetLang.toUpperCase()} yet`;
+      showStatus("✅ Voice Generated!");
+      document.getElementById('audioPlayer').innerHTML = `<audio controls class="w-full mt-4"><source src="${data.audio_url}" type="audio/mp3"></audio>`;
     }
   } catch (e) {
-    status.innerHTML = `❌ Voice Generation Failed`;
+    showStatus("❌ Voice Generation Failed", true);
   }
 }
 
 async function generateSRT() {
-  const status = document.getElementById('status');
-  const srtDiv = document.getElementById('srtLink');
-
   if (currentSegments.length === 0) return alert("Please transcribe first!");
 
-  status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Generating SRT...`;
+  showStatus("Generating SRT...");
 
   const formData = new FormData();
   formData.append("segments", JSON.stringify(currentSegments));
@@ -205,23 +209,21 @@ async function generateSRT() {
     const data = await res.json();
     if (data.status === "success") {
       currentSrtFileName = data.srt_url.split('/').pop();
-      status.innerHTML = `✅ SRT Generated!`;
-      srtDiv.innerHTML = `
+      showStatus("✅ SRT Generated!");
+      document.getElementById('srtLink').innerHTML = `
         <a href="${data.srt_url}" download class="inline-flex items-center gap-3 bg-amber-600 text-white px-8 py-4 rounded-3xl hover:bg-amber-700">
           📥 Download SRT Subtitle File
         </a>`;
     }
   } catch (e) {
-    status.innerHTML = `❌ SRT Generation Failed`;
+    showStatus("❌ SRT Generation Failed", true);
   }
 }
 
 async function burnSubtitles() {
-  const status = document.getElementById('status');
-  const burnedDiv = document.getElementById('burnedVideoLink');
   if (currentSegments.length === 0) return alert("Please generate SRT first!");
 
-  status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Burning subtitles into video...`;
+  showStatus("Burning subtitles into video...");
 
   const fileInput = document.getElementById('mediaFile');
   if (!fileInput.files.length) return alert("Please upload the original video again");
@@ -234,16 +236,16 @@ async function burnSubtitles() {
     const res = await fetch("/burn_subtitles", { method: "POST", body: formData });
     const data = await res.json();
     if (data.status === "success") {
-      status.innerHTML = `✅ Subtitles Burned!`;
-      burnedDiv.innerHTML = `
+      showStatus("✅ Subtitles Burned!");
+      document.getElementById('burnedVideoLink').innerHTML = `
         <a href="${data.video_url}" download class="inline-flex items-center gap-3 bg-red-600 text-white px-8 py-4 rounded-3xl hover:bg-red-700">
           📥 Download Video with Burned Subtitles
         </a>`;
     } else {
-      status.innerHTML = `❌ ${data.message}`;
+      showStatus(`❌ ${data.message}`, true);
     }
   } catch (e) {
-    status.innerHTML = `❌ Failed to burn subtitles`;
+    showStatus("❌ Failed to burn subtitles", true);
   }
 }
 
@@ -262,5 +264,6 @@ function downloadTranslatedText() {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   updateButtonStates();
+  renderResult();
   renderHistory();
 });
