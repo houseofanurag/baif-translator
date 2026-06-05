@@ -35,7 +35,7 @@
 
     <div class="text-center mb-12">
       <h2 class="text-5xl font-semibold heading-font text-slate-800 mb-3">Offline Translation Tool</h2>
-      <p class="text-slate-600 text-lg max-w-2xl mx-auto">Helping BAIF teams transcribe, translate, and generate voice & subtitles in the field — without internet.</p>
+      <p class="text-slate-600 text-lg">Helping BAIF teams transcribe, translate, and generate voice & subtitles</p>
     </div>
 
     <div class="grid md:grid-cols-2 gap-8">
@@ -90,6 +90,10 @@
               class="flex-1 md:flex-none bg-amber-600 hover:bg-amber-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
         <i class="fas fa-file-alt"></i> Generate SRT
       </button>
+      <button onclick="burnSubtitles()" id="burnBtn" disabled
+              class="flex-1 md:flex-none bg-red-600 hover:bg-red-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
+        <i class="fas fa-fire"></i> Burn Subtitles into Video
+      </button>
     </div>
 
     <!-- Status -->
@@ -104,6 +108,9 @@
     <!-- SRT Download -->
     <div id="srtLink" class="mt-6 text-center"></div>
 
+    <!-- Burned Video -->
+    <div id="burnedVideoLink" class="mt-6 text-center"></div>
+
   </div>
 
   <script>
@@ -111,6 +118,7 @@
     let currentTranslatedText = "";
     let currentSegments = [];
     let currentFileName = "";
+    let currentSrtFileName = "";
 
     function updateButtonStates() {
       const hasTranscription = currentText.length > 0;
@@ -118,6 +126,7 @@
       
       document.getElementById('translateBtn').disabled = !hasTranscription;
       document.getElementById('srtBtn').disabled = !hasTranscription;
+      document.getElementById('burnBtn').disabled = !hasTranscription;
       
       const canGenerateVoice = hasTranscription && (targetLang === "en" || currentTranslatedText !== currentText);
       document.getElementById('ttsBtn').disabled = !canGenerateVoice;
@@ -136,13 +145,14 @@
       currentFileName = fileInput.files[0].name;
       document.getElementById('fileName').textContent = `File: ${currentFileName}`;
 
-      // Clear previous results
+      // Clear old results
       currentText = "";
       currentTranslatedText = "";
       currentSegments = [];
       resultDiv.innerHTML = "";
       document.getElementById('audioPlayer').innerHTML = "";
       document.getElementById('srtLink').innerHTML = "";
+      document.getElementById('burnedVideoLink').innerHTML = "";
 
       status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Transcribing ${currentFileName}...`;
 
@@ -158,13 +168,16 @@
           currentTranslatedText = data.transcribed_text;
           currentSegments = data.segments || [];
           
-          status.innerHTML = `✅ Transcription Completed for <span class="font-medium">${currentFileName}</span>`;
+          status.innerHTML = `✅ Transcription Completed`;
           resultDiv.innerHTML = `<strong class="text-blue-700">Transcribed Text:</strong><br><br>${currentText}`;
           
           updateButtonStates();
+        } else {
+          status.innerHTML = `❌ ${data.message || "Failed"}`;
         }
       } catch (e) {
-        status.innerHTML = `❌ Transcription Failed`;
+        console.error(e);
+        status.innerHTML = `❌ Transcription Failed (Check console)`;
       }
     }
 
@@ -173,9 +186,9 @@
       const resultDiv = document.getElementById('result');
       const targetLang = document.getElementById('targetLang').value;
 
-      if (!currentText) return;
+      if (!currentText) return alert("Please transcribe first");
 
-      status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Translating to ${targetLang.toUpperCase()}...`;
+      status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Translating...`;
 
       const formData = new FormData();
       formData.append("text", currentText);
@@ -188,7 +201,7 @@
         if (data.status === "success") {
           currentTranslatedText = data.translated;
           status.innerHTML = `✅ Translation Completed`;
-          resultDiv.innerHTML += `<br><br><strong class="text-emerald-700">Translated to ${targetLang.toUpperCase()}:</strong><br>${data.translated}`;
+          resultDiv.innerHTML += `<br><br><strong class="text-emerald-700">Translated (${targetLang}):</strong><br>${data.translated}`;
           updateButtonStates();
         }
       } catch (e) {
@@ -243,15 +256,54 @@
         const data = await res.json();
         
         if (data.status === "success") {
+          currentSrtFileName = data.srt_url.split('/').pop();
           status.innerHTML = `✅ SRT Generated!`;
           srtDiv.innerHTML = `
-            <a href="${data.srt_url}" download 
-               class="inline-flex items-center gap-3 bg-amber-600 text-white px-8 py-4 rounded-3xl hover:bg-amber-700">
+            <a href="${data.srt_url}" download class="inline-flex items-center gap-3 bg-amber-600 text-white px-8 py-4 rounded-3xl hover:bg-amber-700">
               📥 Download SRT Subtitle File
             </a>`;
         }
       } catch (e) {
         status.innerHTML = `❌ SRT Generation Failed`;
+      }
+    }
+
+    async function burnSubtitles() {
+      const status = document.getElementById('status');
+      const burnedDiv = document.getElementById('burnedVideoLink');
+
+      if (currentSegments.length === 0) {
+        alert("Please generate SRT first!");
+        return;
+      }
+
+      status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Burning subtitles into video...`;
+
+      const fileInput = document.getElementById('mediaFile');
+      if (!fileInput.files.length) {
+        alert("Please upload the original video again");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("original_video", fileInput.files[0]);
+      formData.append("srt_filename", currentSrtFileName);
+
+      try {
+        const res = await fetch("/burn_subtitles", { method: "POST", body: formData });
+        const data = await res.json();
+        
+        if (data.status === "success") {
+          status.innerHTML = `✅ Subtitles Burned into Video!`;
+          burnedDiv.innerHTML = `
+            <a href="${data.video_url}" download class="inline-flex items-center gap-3 bg-red-600 text-white px-8 py-4 rounded-3xl hover:bg-red-700">
+              📥 Download Video with Burned Subtitles
+            </a>`;
+        } else {
+          status.innerHTML = `❌ ${data.message || "Failed"}`;
+        }
+      } catch (e) {
+        status.innerHTML = `❌ Failed to burn subtitles`;
       }
     }
 

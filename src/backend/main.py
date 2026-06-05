@@ -1,7 +1,6 @@
 import warnings
 import multiprocessing
 
-# Suppress common warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="multiprocessing")
 multiprocessing.set_start_method('fork', force=True)
 
@@ -17,12 +16,9 @@ import json
 import subprocess
 
 from transformers import pipeline
-
 from config import Config
 
 app = FastAPI(title=Config.APP_TITLE)
-
-# Mount static files
 app.mount("/static", StaticFiles(directory="src/frontend/static"), name="static")
 
 UPLOAD_DIR = Path(Config.UPLOAD_DIR)
@@ -37,16 +33,15 @@ async def root():
     with open("src/frontend/static/index.html", "r", encoding="utf-8") as f:
         return f.read()
 
-# ====================== TRANSCRIPTION ======================
+# === Existing working endpoints ===
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
     file_path = None
     try:
-        file_path = UPLOAD_DIR / file.filename
+        # Keep unique naming but retain original structure
+        file_path = UPLOAD_DIR / f"transcribe_{uuid.uuid4().hex[:8]}_{file.filename}"
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        
-        print(f"Transcribing: {file.filename}")
         
         result = mlx_whisper.transcribe(
             str(file_path),
@@ -70,9 +65,9 @@ async def transcribe_audio(file: UploadFile = File(...)):
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
     finally:
         if file_path and file_path.exists():
-            os.remove(file_path)
+            try: os.remove(file_path)
+            except: pass
 
-# ====================== TRANSLATION ======================
 @app.post("/translate")
 async def translate(text: str = Form(...), target_lang: str = Form("hi")):
     try:
@@ -81,17 +76,10 @@ async def translate(text: str = Form(...), target_lang: str = Form("hi")):
         
         if target_lang not in translators:
             model_name = f"Helsinki-NLP/opus-mt-en-{target_lang}"
-            print(f"Loading {target_lang.upper()} translator...")
             translators[target_lang] = pipeline("translation", model=model_name, device=-1)
         
         result = translators[target_lang](text[:Config.MAX_TEXT_LENGTH])[0]['translation_text']
-        
-        return {
-            "status": "success",
-            "original": text,
-            "translated": result,
-            "target_lang": target_lang
-        }
+        return {"status": "success", "original": text, "translated": result, "target_lang": target_lang}
     except Exception:
         return JSONResponse({
             "status": "success",
@@ -100,53 +88,33 @@ async def translate(text: str = Form(...), target_lang: str = Form("hi")):
             "target_lang": target_lang
         }, status_code=200)
 
-# ====================== TEXT-TO-SPEECH ======================
 @app.post("/tts")
 async def text_to_speech(text: str = Form(...), lang: str = Form("en")):
     try:
         output_path = OUTPUT_DIR / f"tts_{uuid.uuid4().hex[:8]}.mp3"
-        
         if lang == "en":
-            # Stable macOS built-in voice
-            subprocess.run([
-                "say", "-v", "Samantha", "-o", str(output_path.with_suffix(".aiff")), text[:500]
-            ], check=True)
-            
-            subprocess.run([
-                "ffmpeg", "-i", str(output_path.with_suffix(".aiff")),
-                "-y", str(output_path)
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            
+            subprocess.run(["say", "-v", "Samantha", "-o", str(output_path.with_suffix(".aiff")), text[:500]], check=True)
+            subprocess.run(["ffmpeg", "-i", str(output_path.with_suffix(".aiff")), "-y", str(output_path)], 
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             os.remove(output_path.with_suffix(".aiff"))
-            
-            return {
-                "status": "success",
-                "audio_url": f"/outputs/{output_path.name}",
-                "message": "English voice generated successfully"
-            }
+            return {"status": "success", "audio_url": f"/outputs/{output_path.name}"}
         else:
-            return {
-                "status": "success",
-                "message": "Hindi & Marathi voices coming soon"
-            }
+            return {"status": "success", "message": "Hindi & Marathi voices coming soon"}
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
-# ====================== SRT SUBTITLES ======================
 def create_srt(segments, output_path):
     with open(output_path, "w", encoding="utf-8") as f:
         for i, segment in enumerate(segments, 1):
             start = float(segment.get("start", 0))
             end = float(segment.get("end", start + 1))
             text = segment.get("text", "").strip()
-            
             def format_time(seconds):
                 hours = int(seconds // 3600)
                 minutes = int((seconds % 3600) // 60)
                 secs = int(seconds % 60)
                 millis = int((seconds % 1) * 1000)
                 return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
-            
             f.write(f"{i}\n")
             f.write(f"{format_time(start)} --> {format_time(end)}\n")
             f.write(f"{text}\n\n")
@@ -157,7 +125,6 @@ async def generate_srt(segments: str = Form(...), filename: str = Form("audio"))
         segments_list = json.loads(segments)
         srt_path = OUTPUT_DIR / f"{Path(filename).stem}_{uuid.uuid4().hex[:8]}.srt"
         create_srt(segments_list, srt_path)
-        
         return {
             "status": "success",
             "srt_url": f"/outputs/{srt_path.name}",
@@ -165,6 +132,58 @@ async def generate_srt(segments: str = Form(...), filename: str = Form("audio"))
         }
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+# ====================== BURNED-IN SUBTITLES (CLEAN ABSOLUTE ESCAPING) ======================
+@app.post("/burn_subtitles")
+async def burn_subtitles(original_video: UploadFile = File(...), srt_filename: str = Form(...)):
+    video_path = None
+    try:
+        unique_id = uuid.uuid4().hex[:8]
+        video_path = UPLOAD_DIR / f"burn_{unique_id}_{original_video.filename}"
+        
+        with open(video_path, "wb") as buffer:
+            shutil.copyfileobj(original_video.file, buffer)
+        
+        source_srt_path = OUTPUT_DIR / srt_filename
+        if not source_srt_path.exists():
+            return JSONResponse({"status": "error", "message": "SRT file not found"}, status_code=400)
+        
+        output_path = OUTPUT_DIR / f"burned_{unique_id}.mp4"
+        
+        # Standard libass format escaping for absolute paths on macOS:
+        # Colons are escaped with backslashes, single quotes are replaced with escaped versions, 
+        # and the whole path is cleanly wrapped inside a filter property literal string.
+        escaped_srt_path = str(source_srt_path.absolute()).replace("\\", "/").replace(":", "\\:").replace("'", "'\\\\''")
+        vf_filter = f"subtitles='{escaped_srt_path}'"
+        
+        print(f"Executing standard filter syntax: {vf_filter}")
+        
+        cmd = [
+            "ffmpeg", "-i", str(video_path),
+            "-vf", vf_filter,
+            "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+            "-c:a", "copy",
+            "-y", str(output_path)
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        
+        if result.returncode != 0:
+            print("FFmpeg Error:", result.stderr)
+            return JSONResponse({"status": "error", "message": "FFmpeg failed to burn subtitles"}, status_code=500)
+        
+        return {
+            "status": "success",
+            "video_url": f"/outputs/{output_path.name}",
+            "message": "✅ Subtitles burned successfully!"
+        }
+    except Exception as e:
+        print("Burn error:", str(e))
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+    finally:
+        if video_path and video_path.exists():
+            try: os.remove(video_path)
+            except: pass
 
 app.mount("/outputs", StaticFiles(directory=Config.OUTPUT_DIR), name="outputs")
 
