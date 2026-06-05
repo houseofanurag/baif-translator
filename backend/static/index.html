@@ -10,7 +10,6 @@
     select, input, button { padding: 12px; margin: 8px 0; font-size: 16px; }
     button { background: #0066cc; color: white; border: none; cursor: pointer; border-radius: 5px; }
     button:hover { background: #0055aa; }
-    button:disabled { background: #999; cursor: not-allowed; }
     .section { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     #status { margin: 15px 0; font-weight: bold; color: #333; }
     #result { white-space: pre-wrap; background: white; padding: 15px; border-radius: 8px; line-height: 1.6; }
@@ -38,10 +37,9 @@
   </div>
 
   <div class="section">
-    <h3>3. Text-to-Speech</h3>
-    <button onclick="generateTTS()" style="background:#28a745;">🔊 Generate Voice</button>
-    <p><small><i>TTS is under development (will be available soon)</i></small></p>
-    <div id="audioPlayer"></div>
+    <h3>3. SRT Subtitles</h3>
+    <button onclick="generateSRT()">📄 Generate SRT File</button>
+    <div id="srtLink"></div>
   </div>
 
   <div id="status"></div>
@@ -49,7 +47,7 @@
 
   <script>
     let currentText = "";
-    let currentTranslatedText = "";
+    let currentSegments = [];
 
     async function transcribe() {
       const fileInput = document.getElementById('mediaFile');
@@ -71,7 +69,7 @@
         
         if (data.status === "success") {
           currentText = data.transcribed_text;
-          currentTranslatedText = data.transcribed_text;
+          currentSegments = data.segments || [];
           
           status.innerHTML = "✅ Transcription Completed!";
           resultDiv.innerHTML = `<strong>Transcribed Text:</strong><br><br>${currentText}`;
@@ -99,25 +97,44 @@
       try {
         const res = await fetch("/translate", { method: "POST", body: formData });
         const data = await res.json();
-        
         if (data.status === "success") {
-          currentTranslatedText = data.translated;
           status.innerHTML = "✅ Translation Completed!";
-          
-          resultDiv.innerHTML = `
-            <strong>Original:</strong><br>${currentText}<br><br>
-            <strong>Translated (${targetLang}):</strong><br>${data.translated}
-          `;
+          resultDiv.innerHTML += `<br><br><strong>Translated (${targetLang}):</strong><br>${data.translated}`;
         }
       } catch (e) {
         status.innerHTML = "❌ Translation Failed";
       }
     }
 
-    async function generateTTS() {
+    async function generateSRT() {
       const status = document.getElementById('status');
-      status.innerHTML = "⏳ TTS is under development...";
-      alert("Text-to-Speech feature is currently under development.\nIt will be available in the next update.");
+      const srtDiv = document.getElementById('srtLink');
+
+      if (currentSegments.length === 0) {
+        alert("Please transcribe a file first!");
+        return;
+      }
+
+      status.innerHTML = "⏳ Generating SRT Subtitle File...";
+
+      const formData = new FormData();
+      formData.append("segments", JSON.stringify(currentSegments));
+      formData.append("filename", "input_audio");
+
+      try {
+        const res = await fetch("/generate_srt", { method: "POST", body: formData });
+        const data = await res.json();
+
+        if (data.status === "success") {
+          status.innerHTML = "✅ SRT File Generated!";
+          srtDiv.innerHTML = `
+            <a href="${data.srt_url}" download style="color:green; font-weight:bold;">
+              📥 Download SRT Subtitle File
+            </a>`;
+        }
+      } catch (e) {
+        status.innerHTML = "❌ Failed to generate SRT";
+      }
     }
   </script>
 </body>
