@@ -1,21 +1,22 @@
+cat > README.md << 'EOF'
 # BAIF Offline Translator
 
-A fully **offline** translation application for BAIF that supports **Text, Audio, and Video** inputs.
+A fully **offline** translation application for BAIF that supports **Text, Audio, and Video** inputs with transcription, translation, and voice output.
 
 ---
 
 ## 🎯 Objective
 
-Develop a complete offline solution for translating content between **English, Hindi, and Marathi** — especially useful in rural/field areas with poor internet.
+Develop a complete offline solution for translating content between **English, Hindi, and Marathi** — especially useful in rural/field areas with poor internet connectivity.
 
 ---
 
 ## ✨ Features
 
 - Audio & Video file upload
-- Speech-to-Text Transcription (MLX Whisper)
+- Speech-to-Text Transcription (Whisper Base)
 - Translation (English ↔ Hindi ↔ Marathi)
-- Text-to-Speech (Voice Output - under development)
+- Text-to-Speech (under development)
 - Fully offline & open-source
 
 ---
@@ -32,8 +33,7 @@ Develop a complete offline solution for translating content between **English, H
 
 ## 🚀 Quick Start
 
-### 1. Setup
+### 1. Setup (First Time Only)
 
 ```bash
-cd baif-translator
 ./setup.sh
