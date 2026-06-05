@@ -31,95 +31,106 @@
     </div>
   </header>
 
-  <div class="max-w-5xl mx-auto p-6 pt-10">
+  <div class="max-w-6xl mx-auto p-6 pt-10 grid grid-cols-1 lg:grid-cols-4 gap-8">
 
-    <div class="text-center mb-12">
-      <h2 class="text-5xl font-semibold heading-font text-slate-800 mb-3">Offline Translation Tool</h2>
-      <p class="text-slate-600 text-lg">Helping BAIF teams transcribe, translate, and generate outputs</p>
-    </div>
+    <!-- Main Content -->
+    <div class="lg:col-span-3">
 
-    <div class="grid md:grid-cols-2 gap-8">
-
-      <!-- Transcription -->
-      <div class="glass rounded-3xl p-8 shadow-xl border border-slate-100">
-        <div class="flex items-center gap-4 mb-6">
-          <i class="fas fa-microphone text-3xl text-blue-600"></i>
-          <div>
-            <h3 class="text-2xl font-semibold">1. Transcription</h3>
-            <p class="text-sm text-slate-500">Upload audio or video</p>
-          </div>
-        </div>
-        <input type="file" id="mediaFile" accept="audio/*,video/*" 
-               class="w-full text-sm text-slate-500 file:mr-4 file:py-4 file:px-8 file:rounded-2xl file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer transition">
-        <button onclick="transcribe()" id="transcribeBtn"
-                class="mt-8 w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-2xl text-white font-semibold text-lg transition">
-          🚀 Start Transcription
-        </button>
-        <div id="fileName" class="mt-3 text-xs text-slate-500 text-center"></div>
+      <div class="text-center mb-12">
+        <h2 class="text-5xl font-semibold heading-font text-slate-800 mb-3">Offline Translation Tool</h2>
+        <p class="text-slate-600 text-lg">Helping BAIF teams work without internet</p>
       </div>
 
-      <!-- Translation -->
-      <div class="glass rounded-3xl p-8 shadow-xl border border-slate-100">
-        <div class="flex items-center gap-4 mb-6">
-          <i class="fas fa-language text-3xl text-emerald-600"></i>
-          <div>
-            <h3 class="text-2xl font-semibold">2. Translation</h3>
-            <p class="text-sm text-slate-500">Choose target language</p>
+      <div class="grid md:grid-cols-2 gap-8">
+        <!-- Transcription -->
+        <div class="glass rounded-3xl p-8 shadow-xl border border-slate-100">
+          <div class="flex items-center gap-4 mb-6">
+            <i class="fas fa-microphone text-3xl text-blue-600"></i>
+            <div>
+              <h3 class="text-2xl font-semibold">1. Transcription</h3>
+              <p class="text-sm text-slate-500">Upload audio or video</p>
+            </div>
           </div>
+          <input type="file" id="mediaFile" accept="audio/*,video/*" 
+                 class="w-full text-sm text-slate-500 file:mr-4 file:py-4 file:px-8 file:rounded-2xl file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer transition">
+          <button onclick="transcribe()" id="transcribeBtn"
+                  class="mt-8 w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-2xl text-white font-semibold text-lg transition">
+            🚀 Start Transcription
+          </button>
+          <div id="fileName" class="mt-3 text-xs text-slate-500 text-center"></div>
         </div>
-        <select id="targetLang" class="w-full p-4 border border-slate-300 rounded-2xl text-lg">
-          <option value="en">English</option>
-          <option value="hi">Hindi</option>
-          <option value="mr">Marathi</option>
-        </select>
-        <button onclick="translateText()" id="translateBtn" disabled
-                class="mt-8 w-full bg-emerald-600 hover:bg-emerald-700 py-4 rounded-2xl text-white font-semibold text-lg transition disabled:opacity-50">
-          🌐 Translate Text
+
+        <!-- Translation -->
+        <div class="glass rounded-3xl p-8 shadow-xl border border-slate-100">
+          <div class="flex items-center gap-4 mb-6">
+            <i class="fas fa-language text-3xl text-emerald-600"></i>
+            <div>
+              <h3 class="text-2xl font-semibold">2. Translation</h3>
+              <p class="text-sm text-slate-500">Choose target language</p>
+            </div>
+          </div>
+          <select id="targetLang" class="w-full p-4 border border-slate-300 rounded-2xl text-lg">
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="mr">Marathi</option>
+          </select>
+          <button onclick="translateText()" id="translateBtn" disabled
+                  class="mt-8 w-full bg-emerald-600 hover:bg-emerald-700 py-4 rounded-2xl text-white font-semibold text-lg transition disabled:opacity-50">
+            🌐 Translate Text
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="mt-12 flex flex-wrap gap-4 justify-center">
+        <button onclick="generateTTS()" id="ttsBtn" disabled
+                class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
+          <i class="fas fa-volume-up"></i> Generate Voice
+        </button>
+        <button onclick="generateSRT()" id="srtBtn" disabled
+                class="flex-1 md:flex-none bg-amber-600 hover:bg-amber-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
+          <i class="fas fa-file-alt"></i> Generate SRT
+        </button>
+        <button onclick="burnSubtitles()" id="burnBtn" disabled
+                class="flex-1 md:flex-none bg-red-600 hover:bg-red-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
+          <i class="fas fa-fire"></i> Burn Subtitles into Video
+        </button>
+        <button onclick="downloadTranslatedText()" id="downloadBtn" disabled
+                class="flex-1 md:flex-none bg-violet-600 hover:bg-violet-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
+          <i class="fas fa-download"></i> Download Translated Text
         </button>
       </div>
 
+      <!-- Status -->
+      <div id="status" class="mt-8 text-center font-medium text-lg min-h-[40px]"></div>
+
+      <!-- Side-by-Side Result -->
+      <div id="result" class="mt-6 bg-white rounded-3xl p-8 shadow min-h-[280px]">
+        <div id="resultContent" class="grid md:grid-cols-2 gap-8"></div>
+      </div>
+
+      <!-- Audio Player -->
+      <div id="audioPlayer" class="mt-6"></div>
+
+      <!-- SRT Download -->
+      <div id="srtLink" class="mt-6 text-center"></div>
+
+      <!-- Burned Video -->
+      <div id="burnedVideoLink" class="mt-6 text-center"></div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="mt-12 flex flex-wrap gap-4 justify-center">
-      <button onclick="generateTTS()" id="ttsBtn" disabled
-              class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
-        <i class="fas fa-volume-up"></i> Generate Voice
-      </button>
-      <button onclick="generateSRT()" id="srtBtn" disabled
-              class="flex-1 md:flex-none bg-amber-600 hover:bg-amber-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
-        <i class="fas fa-file-alt"></i> Generate SRT
-      </button>
-      <button onclick="burnSubtitles()" id="burnBtn" disabled
-              class="flex-1 md:flex-none bg-red-600 hover:bg-red-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
-        <i class="fas fa-fire"></i> Burn Subtitles into Video
-      </button>
-      <button onclick="downloadTranslatedText()" id="downloadBtn" disabled
-              class="flex-1 md:flex-none bg-violet-600 hover:bg-violet-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
-        <i class="fas fa-download"></i> Download Translated Text
-      </button>
+    <!-- History Sidebar -->
+    <div class="lg:col-span-1">
+      <div class="glass rounded-3xl p-6 shadow-xl border border-slate-100 sticky top-6">
+        <h3 class="font-semibold text-lg mb-4 flex items-center gap-2">
+          <i class="fas fa-history"></i> Recent Translations
+        </h3>
+        <div id="historyList" class="space-y-4 text-sm max-h-[70vh] overflow-y-auto"></div>
+      </div>
     </div>
-
-    <!-- Status -->
-    <div id="status" class="mt-8 text-center font-medium text-lg min-h-[40px]"></div>
-
-    <!-- Side-by-Side Result -->
-    <div id="result" class="mt-6 bg-white rounded-3xl p-8 shadow min-h-[280px]">
-      <div id="resultContent" class="grid md:grid-cols-2 gap-8"></div>
-    </div>
-
-    <!-- Audio Player -->
-    <div id="audioPlayer" class="mt-6"></div>
-
-    <!-- SRT Download -->
-    <div id="srtLink" class="mt-6 text-center"></div>
-
-    <!-- Burned Video -->
-    <div id="burnedVideoLink" class="mt-6 text-center"></div>
 
   </div>
 
-  <!-- Load external JS -->
   <script src="/static/js/app.js"></script>
 </body>
 </html>

@@ -45,6 +45,42 @@ function renderResult() {
   container.innerHTML = html || '<p class="text-slate-400 text-center py-12">Results will appear here after transcription...</p>';
 }
 
+// ==================== History Management ====================
+function saveToHistory() {
+  if (!currentTranslatedText) return;
+  
+  const history = JSON.parse(localStorage.getItem('baif_history') || '[]');
+  
+  const entry = {
+    timestamp: new Date().toLocaleString('en-IN'),
+    original: currentText.substring(0, 80) + (currentText.length > 80 ? '...' : ''),
+    translated: currentTranslatedText.substring(0, 80) + (currentTranslatedText.length > 80 ? '...' : ''),
+    targetLang: document.getElementById('targetLang').value.toUpperCase(),
+    fileName: currentFileName || 'Untitled'
+  };
+  
+  history.unshift(entry);
+  localStorage.setItem('baif_history', JSON.stringify(history.slice(0, 5))); // Keep last 5
+  renderHistory();
+}
+
+function renderHistory() {
+  const container = document.getElementById('historyList');
+  const history = JSON.parse(localStorage.getItem('baif_history') || '[]');
+  
+  if (history.length === 0) {
+    container.innerHTML = '<p class="text-slate-400 text-sm italic">No previous translations yet.</p>';
+    return;
+  }
+
+  container.innerHTML = history.map(item => `
+    <div class="bg-slate-50 p-4 rounded-2xl text-sm border border-slate-100">
+      <div class="text-xs text-slate-500 mb-1">${item.timestamp} • ${item.targetLang}</div>
+      <div class="font-medium text-slate-700 line-clamp-2">${item.translated}</div>
+    </div>
+  `).join('');
+}
+
 // ==================== Core Functions ====================
 
 async function transcribe() {
@@ -56,7 +92,7 @@ async function transcribe() {
   currentFileName = fileInput.files[0].name;
   document.getElementById('fileName').textContent = `File: ${currentFileName}`;
 
-  // Clear previous results
+  // Clear previous
   currentText = currentTranslatedText = "";
   currentSegments = [];
   document.getElementById('resultContent').innerHTML = "";
@@ -89,7 +125,7 @@ async function translateText() {
   const status = document.getElementById('status');
   const targetLang = document.getElementById('targetLang').value;
 
-  if (!currentText) return;
+  if (!currentText) return alert("Please transcribe first");
 
   status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Translating...`;
 
@@ -105,6 +141,7 @@ async function translateText() {
       status.innerHTML = `✅ Translation Completed`;
       renderResult();
       updateButtonStates();
+      saveToHistory();           // Auto save to history
     }
   } catch (e) {
     status.innerHTML = `❌ Translation Failed`;
@@ -220,4 +257,5 @@ function downloadTranslatedText() {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   updateButtonStates();
+  renderHistory();
 });
