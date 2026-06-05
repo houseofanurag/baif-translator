@@ -1,4 +1,4 @@
-cat > README.md << 'EOF'
+
 # BAIF Offline Translator
 
 A fully **offline** translation application for BAIF that supports **Text, Audio, and Video** inputs with transcription, translation, and voice output.
