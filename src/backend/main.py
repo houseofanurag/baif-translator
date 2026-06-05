@@ -1,3 +1,10 @@
+import warnings
+import multiprocessing
+
+# Suppress common warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="multiprocessing")
+multiprocessing.set_start_method('fork', force=True)
+
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -11,11 +18,15 @@ import subprocess
 
 from transformers import pipeline
 
-app = FastAPI(title="BAIF Translator")
-app.mount("/static", StaticFiles(directory="backend/static"), name="static")
+from config import Config
 
-UPLOAD_DIR = Path("uploads")
-OUTPUT_DIR = Path("outputs")
+app = FastAPI(title=Config.APP_TITLE)
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="src/frontend/static"), name="static")
+
+UPLOAD_DIR = Path(Config.UPLOAD_DIR)
+OUTPUT_DIR = Path(Config.OUTPUT_DIR)
 UPLOAD_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR.mkdir(exist_ok=True)
 
@@ -23,9 +34,10 @@ translators = {}
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    with open("backend/static/index.html", "r", encoding="utf-8") as f:
+    with open("src/frontend/static/index.html", "r", encoding="utf-8") as f:
         return f.read()
 
+# ====================== TRANSCRIPTION ======================
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
     file_path = None
@@ -34,9 +46,11 @@ async def transcribe_audio(file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
+        print(f"Transcribing: {file.filename}")
+        
         result = mlx_whisper.transcribe(
             str(file_path),
-            path_or_hf_repo="mlx-community/whisper-base-mlx",
+            path_or_hf_repo=Config.WHISPER_MODEL,
             verbose=False,
             word_timestamps=True
         )
@@ -58,6 +72,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
         if file_path and file_path.exists():
             os.remove(file_path)
 
+# ====================== TRANSLATION ======================
 @app.post("/translate")
 async def translate(text: str = Form(...), target_lang: str = Form("hi")):
     try:
@@ -69,14 +84,15 @@ async def translate(text: str = Form(...), target_lang: str = Form("hi")):
             print(f"Loading {target_lang.upper()} translator...")
             translators[target_lang] = pipeline("translation", model=model_name, device=-1)
         
-        result = translators[target_lang](text[:400])[0]['translation_text']
+        result = translators[target_lang](text[:Config.MAX_TEXT_LENGTH])[0]['translation_text']
+        
         return {
             "status": "success",
             "original": text,
             "translated": result,
             "target_lang": target_lang
         }
-    except:
+    except Exception:
         return JSONResponse({
             "status": "success",
             "original": text,
@@ -84,26 +100,39 @@ async def translate(text: str = Form(...), target_lang: str = Form("hi")):
             "target_lang": target_lang
         }, status_code=200)
 
+# ====================== TEXT-TO-SPEECH ======================
 @app.post("/tts")
 async def text_to_speech(text: str = Form(...), lang: str = Form("en")):
     try:
         output_path = OUTPUT_DIR / f"tts_{uuid.uuid4().hex[:8]}.mp3"
         
         if lang == "en":
-            subprocess.run(["say", "-v", "Samantha", "-o", str(output_path.with_suffix(".aiff")), text[:500]], check=True)
-            subprocess.run(["ffmpeg", "-i", str(output_path.with_suffix(".aiff")), "-y", str(output_path)], 
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            # Stable macOS built-in voice
+            subprocess.run([
+                "say", "-v", "Samantha", "-o", str(output_path.with_suffix(".aiff")), text[:500]
+            ], check=True)
+            
+            subprocess.run([
+                "ffmpeg", "-i", str(output_path.with_suffix(".aiff")),
+                "-y", str(output_path)
+            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            
             os.remove(output_path.with_suffix(".aiff"))
+            
+            return {
+                "status": "success",
+                "audio_url": f"/outputs/{output_path.name}",
+                "message": "English voice generated successfully"
+            }
         else:
-            return {"status": "success", "message": "Hindi/Marathi voice coming soon"}
-        
-        return {
-            "status": "success",
-            "audio_url": f"/outputs/{output_path.name}"
-        }
+            return {
+                "status": "success",
+                "message": "Hindi & Marathi voices coming soon"
+            }
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
+# ====================== SRT SUBTITLES ======================
 def create_srt(segments, output_path):
     with open(output_path, "w", encoding="utf-8") as f:
         for i, segment in enumerate(segments, 1):
@@ -137,4 +166,8 @@ async def generate_srt(segments: str = Form(...), filename: str = Form("audio"))
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
-app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
+app.mount("/outputs", StaticFiles(directory=Config.OUTPUT_DIR), name="outputs")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host=Config.HOST, port=Config.PORT)
