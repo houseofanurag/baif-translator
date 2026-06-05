@@ -1,39 +1,40 @@
-
 # BAIF Offline Translator
 
-A fully **offline** translation application for BAIF that supports **Text, Audio, and Video** inputs with transcription, translation, and voice output.
+A fully **offline** translation application for BAIF supporting **Text, Audio, and Video** inputs.
 
 ---
 
 ## 🎯 Objective
 
-Develop a complete offline solution for translating content between **English, Hindi, and Marathi** — especially useful in rural/field areas with poor internet connectivity.
+To provide a complete offline solution for transcribing, translating, and generating outputs between **English, Hindi, and Marathi** languages.
 
 ---
 
 ## ✨ Features
 
-- Audio & Video file upload
-- Speech-to-Text Transcription (Whisper Base)
+- Audio & Video Transcription
 - Translation (English ↔ Hindi ↔ Marathi)
-- Text-to-Speech (under development)
+- SRT Subtitle Generation
 - Fully offline & open-source
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack & Models
 
-- **Frontend**: HTML, CSS, JavaScript
-- **Backend**: FastAPI (Python)
-- **Transcription**: MLX Whisper (`whisper-base`)
-- **Translation**: Helsinki-NLP OPUS models
-- **Media Processing**: FFmpeg
+| Component          | Technology / Model                        | Purpose |
+|--------------------|-------------------------------------------|-------|
+| **Backend**        | FastAPI (Python)                          | Main server & API |
+| **Transcription**  | MLX Whisper (`whisper-base-mlx`)          | Speech-to-Text (optimized for Apple Silicon) |
+| **Translation**    | Helsinki-NLP OPUS-MT (En→Hi, En→Mr)       | Text translation |
+| **SRT Generation** | Custom Python logic + timestamps          | Create subtitle files |
+| **Frontend**       | HTML + CSS + JavaScript                   | User Interface |
+| **Media Handling** | FFmpeg                                    | Audio/Video processing |
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Setup (First Time Only)
+### 1. Setup (First Time)
 
 ```bash
 ./setup.sh

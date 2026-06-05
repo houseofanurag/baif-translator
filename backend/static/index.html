@@ -13,6 +13,7 @@
     .section { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     #status { margin: 15px 0; font-weight: bold; color: #333; }
     #result { white-space: pre-wrap; background: white; padding: 15px; border-radius: 8px; line-height: 1.6; }
+    audio { width: 100%; margin: 10px 0; }
   </style>
 </head>
 <body>
@@ -37,7 +38,13 @@
   </div>
 
   <div class="section">
-    <h3>3. SRT Subtitles</h3>
+    <h3>3. Text-to-Speech</h3>
+    <button onclick="generateTTS()" style="background:#28a745;">🔊 Generate Voice</button>
+    <div id="audioPlayer"></div>
+  </div>
+
+  <div class="section">
+    <h3>4. SRT Subtitles</h3>
     <button onclick="generateSRT()">📄 Generate SRT File</button>
     <div id="srtLink"></div>
   </div>
@@ -47,6 +54,7 @@
 
   <script>
     let currentText = "";
+    let currentTranslatedText = "";
     let currentSegments = [];
 
     async function transcribe() {
@@ -69,6 +77,7 @@
         
         if (data.status === "success") {
           currentText = data.transcribed_text;
+          currentTranslatedText = data.transcribed_text;
           currentSegments = data.segments || [];
           
           status.innerHTML = "✅ Transcription Completed!";
@@ -98,6 +107,7 @@
         const res = await fetch("/translate", { method: "POST", body: formData });
         const data = await res.json();
         if (data.status === "success") {
+          currentTranslatedText = data.translated;
           status.innerHTML = "✅ Translation Completed!";
           resultDiv.innerHTML += `<br><br><strong>Translated (${targetLang}):</strong><br>${data.translated}`;
         }
@@ -106,34 +116,58 @@
       }
     }
 
+    async function generateTTS() {
+      const status = document.getElementById('status');
+      const audioDiv = document.getElementById('audioPlayer');
+
+      if (!currentTranslatedText) {
+        alert("Please translate first!");
+        return;
+      }
+
+      status.innerHTML = "⏳ Generating Voice...";
+      const formData = new FormData();
+      formData.append("text", currentTranslatedText);
+      formData.append("lang", document.getElementById('targetLang').value);
+
+      try {
+        const res = await fetch("/tts", { method: "POST", body: formData });
+        const data = await res.json();
+
+        if (data.status === "success" && data.audio_url) {
+          status.innerHTML = "✅ Voice Generated!";
+          audioDiv.innerHTML = `<audio controls><source src="${data.audio_url}" type="audio/mp3"></audio>`;
+        } else {
+          status.innerHTML = "✅ " + (data.message || "Voice ready (English only for now)");
+        }
+      } catch (e) {
+        status.innerHTML = "❌ Voice Generation Failed";
+      }
+    }
+
     async function generateSRT() {
       const status = document.getElementById('status');
       const srtDiv = document.getElementById('srtLink');
 
       if (currentSegments.length === 0) {
-        alert("Please transcribe a file first!");
+        alert("Please transcribe first!");
         return;
       }
 
-      status.innerHTML = "⏳ Generating SRT Subtitle File...";
-
+      status.innerHTML = "⏳ Generating SRT...";
       const formData = new FormData();
       formData.append("segments", JSON.stringify(currentSegments));
-      formData.append("filename", "input_audio");
+      formData.append("filename", "input");
 
       try {
         const res = await fetch("/generate_srt", { method: "POST", body: formData });
         const data = await res.json();
-
         if (data.status === "success") {
-          status.innerHTML = "✅ SRT File Generated!";
-          srtDiv.innerHTML = `
-            <a href="${data.srt_url}" download style="color:green; font-weight:bold;">
-              📥 Download SRT Subtitle File
-            </a>`;
+          status.innerHTML = "✅ SRT Generated!";
+          srtDiv.innerHTML = `<a href="${data.srt_url}" download style="color:green;">📥 Download SRT File</a>`;
         }
       } catch (e) {
-        status.innerHTML = "❌ Failed to generate SRT";
+        status.innerHTML = "❌ SRT Generation Failed";
       }
     }
   </script>

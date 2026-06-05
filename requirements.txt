@@ -1,8 +1,11 @@
-# Core Dependencies for BAIF Offline Translator
+# BAIF Offline Translator - Requirements
 
+# Core Framework
 fastapi
 uvicorn[standard]
 python-multipart
+
+# Transcription (Whisper)
 mlx-whisper
 
 # Translation
@@ -10,5 +13,9 @@ transformers
 sentencepiece
 sacremoses
 
-# Utils
+# Media & Utils
+ffmpeg-python
 pydantic
+
+# For SRT & File Handling
+uuid

@@ -7,6 +7,7 @@ import shutil
 from pathlib import Path
 import uuid
 import json
+import subprocess
 
 from transformers import pipeline
 
@@ -17,6 +18,8 @@ UPLOAD_DIR = Path("uploads")
 OUTPUT_DIR = Path("outputs")
 UPLOAD_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR.mkdir(exist_ok=True)
+
+translators = {}
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
@@ -31,8 +34,6 @@ async def transcribe_audio(file: UploadFile = File(...)):
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
-        print(f"Transcribing {file.filename}...")
-        
         result = mlx_whisper.transcribe(
             str(file_path),
             path_or_hf_repo="mlx-community/whisper-base-mlx",
@@ -40,14 +41,11 @@ async def transcribe_audio(file: UploadFile = File(...)):
             word_timestamps=True
         )
         
-        # Clean segments to avoid NaN/inf values
-        cleaned_segments = []
-        for seg in result.get("segments", []):
-            cleaned_segments.append({
-                "start": float(seg.get("start", 0)),
-                "end": float(seg.get("end", 0)),
-                "text": seg.get("text", "").strip()
-            })
+        cleaned_segments = [{
+            "start": float(seg.get("start", 0)),
+            "end": float(seg.get("end", 0)),
+            "text": seg.get("text", "").strip()
+        } for seg in result.get("segments", [])]
         
         return {
             "status": "success",
@@ -60,7 +58,6 @@ async def transcribe_audio(file: UploadFile = File(...)):
         if file_path and file_path.exists():
             os.remove(file_path)
 
-# ====================== TRANSLATION ======================
 @app.post("/translate")
 async def translate(text: str = Form(...), target_lang: str = Form("hi")):
     try:
@@ -69,18 +66,17 @@ async def translate(text: str = Form(...), target_lang: str = Form("hi")):
         
         if target_lang not in translators:
             model_name = f"Helsinki-NLP/opus-mt-en-{target_lang}"
-            print(f"Loading English → {target_lang.upper()} translator...")
+            print(f"Loading {target_lang.upper()} translator...")
             translators[target_lang] = pipeline("translation", model=model_name, device=-1)
         
         result = translators[target_lang](text[:400])[0]['translation_text']
-        
         return {
             "status": "success",
             "original": text,
             "translated": result,
             "target_lang": target_lang
         }
-    except Exception as e:
+    except:
         return JSONResponse({
             "status": "success",
             "original": text,
@@ -88,7 +84,26 @@ async def translate(text: str = Form(...), target_lang: str = Form("hi")):
             "target_lang": target_lang
         }, status_code=200)
 
-# ====================== SRT ======================
+@app.post("/tts")
+async def text_to_speech(text: str = Form(...), lang: str = Form("en")):
+    try:
+        output_path = OUTPUT_DIR / f"tts_{uuid.uuid4().hex[:8]}.mp3"
+        
+        if lang == "en":
+            subprocess.run(["say", "-v", "Samantha", "-o", str(output_path.with_suffix(".aiff")), text[:500]], check=True)
+            subprocess.run(["ffmpeg", "-i", str(output_path.with_suffix(".aiff")), "-y", str(output_path)], 
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            os.remove(output_path.with_suffix(".aiff"))
+        else:
+            return {"status": "success", "message": "Hindi/Marathi voice coming soon"}
+        
+        return {
+            "status": "success",
+            "audio_url": f"/outputs/{output_path.name}"
+        }
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
 def create_srt(segments, output_path):
     with open(output_path, "w", encoding="utf-8") as f:
         for i, segment in enumerate(segments, 1):
@@ -121,7 +136,5 @@ async def generate_srt(segments: str = Form(...), filename: str = Form("audio"))
         }
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
-
-translators = {}  # Global cache
 
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
