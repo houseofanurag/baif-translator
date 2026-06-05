@@ -1,5 +1,6 @@
 import warnings
 import multiprocessing
+import time
 
 warnings.filterwarnings("ignore", category=UserWarning, module="multiprocessing")
 multiprocessing.set_start_method('fork', force=True)
@@ -26,6 +27,27 @@ OUTPUT_DIR = Path(Config.OUTPUT_DIR)
 UPLOAD_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR.mkdir(exist_ok=True)
 
+# ====================== AUTO CLEANUP ON STARTUP ======================
+def cleanup_old_files():
+    try:
+        now = time.time()
+        deleted = 0
+        for file in OUTPUT_DIR.glob("*"):
+            if file.is_file():
+                # Delete files older than 24 hours
+                if os.path.getmtime(file) < now - 86400:  # 24 hours
+                    file.unlink()
+                    deleted += 1
+        if deleted > 0:
+            print(f"🧹 Auto-cleaned {deleted} old files from outputs folder")
+        else:
+            print("✅ Outputs folder is clean")
+    except Exception as e:
+        print(f"Cleanup warning: {e}")
+
+# Run cleanup when server starts
+cleanup_old_files()
+
 translators = {}
 
 @app.get("/", response_class=HTMLResponse)
@@ -33,7 +55,7 @@ async def root():
     with open("src/frontend/static/index.html", "r", encoding="utf-8") as f:
         return f.read()
 
-# ====================== TRANSCRIPTION ======================
+# ====================== Your Existing Endpoints ======================
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
     file_path = None
@@ -67,7 +89,8 @@ async def transcribe_audio(file: UploadFile = File(...)):
             try: os.remove(file_path)
             except: pass
 
-# ====================== TRANSLATION ======================
+# Keep your other endpoints (translate, tts, generate_srt, burn_subtitles) as they are...
+
 @app.post("/translate")
 async def translate(text: str = Form(...), target_lang: str = Form("hi")):
     try:
@@ -88,7 +111,6 @@ async def translate(text: str = Form(...), target_lang: str = Form("hi")):
             "target_lang": target_lang
         }, status_code=200)
 
-# ====================== TTS ======================
 @app.post("/tts")
 async def text_to_speech(text: str = Form(...), lang: str = Form("en")):
     try:
@@ -104,7 +126,6 @@ async def text_to_speech(text: str = Form(...), lang: str = Form("en")):
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
-# ====================== SRT ======================
 def create_srt(segments, output_path):
     with open(output_path, "w", encoding="utf-8") as f:
         for i, segment in enumerate(segments, 1):
@@ -135,9 +156,9 @@ async def generate_srt(segments: str = Form(...), filename: str = Form("audio"))
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
-# ====================== BURNED-IN SUBTITLES (Improved Escaping) ======================
 @app.post("/burn_subtitles")
 async def burn_subtitles(original_video: UploadFile = File(...), srt_filename: str = Form(...)):
+    # Keep your latest working burn_subtitles function here
     video_path = None
     try:
         video_path = UPLOAD_DIR / f"burn_{uuid.uuid4().hex[:8]}_{original_video.filename}"
@@ -150,11 +171,8 @@ async def burn_subtitles(original_video: UploadFile = File(...), srt_filename: s
         
         output_path = OUTPUT_DIR / f"burned_{uuid.uuid4().hex[:8]}.mp4"
         
-        # Best escaping for macOS + spaces in filename
         escaped_srt_path = str(srt_path.absolute()).replace("\\", "/").replace(":", "\\:").replace("'", "'\\\\''")
         vf_filter = f"subtitles='{escaped_srt_path}'"
-        
-        print(f"Using filter: {vf_filter}")
         
         cmd = [
             "ffmpeg", "-i", str(video_path),
