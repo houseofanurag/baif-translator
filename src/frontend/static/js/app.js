@@ -48,9 +48,7 @@ function renderResult() {
 // ==================== History Management ====================
 function saveToHistory() {
   if (!currentTranslatedText) return;
-  
   const history = JSON.parse(localStorage.getItem('baif_history') || '[]');
-  
   const entry = {
     timestamp: new Date().toLocaleString('en-IN'),
     original: currentText.substring(0, 80) + (currentText.length > 80 ? '...' : ''),
@@ -58,27 +56,45 @@ function saveToHistory() {
     targetLang: document.getElementById('targetLang').value.toUpperCase(),
     fileName: currentFileName || 'Untitled'
   };
-  
   history.unshift(entry);
-  localStorage.setItem('baif_history', JSON.stringify(history.slice(0, 5))); // Keep last 5
+  localStorage.setItem('baif_history', JSON.stringify(history.slice(0, 5)));
   renderHistory();
 }
 
 function renderHistory() {
   const container = document.getElementById('historyList');
   const history = JSON.parse(localStorage.getItem('baif_history') || '[]');
-  
   if (history.length === 0) {
     container.innerHTML = '<p class="text-slate-400 text-sm italic">No previous translations yet.</p>';
     return;
   }
-
   container.innerHTML = history.map(item => `
     <div class="bg-slate-50 p-4 rounded-2xl text-sm border border-slate-100">
       <div class="text-xs text-slate-500 mb-1">${item.timestamp} • ${item.targetLang}</div>
       <div class="font-medium text-slate-700 line-clamp-2">${item.translated}</div>
     </div>
   `).join('');
+}
+
+// ==================== Clear All ====================
+function clearAll() {
+  if (!confirm("Clear all current results?")) return;
+
+  currentText = "";
+  currentTranslatedText = "";
+  currentSegments = [];
+  currentFileName = "";
+  currentSrtFileName = "";
+
+  document.getElementById('mediaFile').value = "";
+  document.getElementById('fileName').textContent = "";
+  document.getElementById('resultContent').innerHTML = '<p class="text-slate-400 text-center py-12">Results will appear here after transcription...</p>';
+  document.getElementById('audioPlayer').innerHTML = "";
+  document.getElementById('srtLink').innerHTML = "";
+  document.getElementById('burnedVideoLink').innerHTML = "";
+  document.getElementById('status').innerHTML = "";
+
+  updateButtonStates();
 }
 
 // ==================== Core Functions ====================
@@ -108,7 +124,6 @@ async function transcribe() {
   try {
     const res = await fetch("/transcribe", { method: "POST", body: formData });
     const data = await res.json();
-    
     if (data.status === "success") {
       currentText = currentTranslatedText = data.transcribed_text;
       currentSegments = data.segments || [];
@@ -124,7 +139,6 @@ async function transcribe() {
 async function translateText() {
   const status = document.getElementById('status');
   const targetLang = document.getElementById('targetLang').value;
-
   if (!currentText) return alert("Please transcribe first");
 
   status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Translating...`;
@@ -141,7 +155,7 @@ async function translateText() {
       status.innerHTML = `✅ Translation Completed`;
       renderResult();
       updateButtonStates();
-      saveToHistory();           // Auto save to history
+      saveToHistory();
     }
   } catch (e) {
     status.innerHTML = `❌ Translation Failed`;
@@ -152,7 +166,6 @@ async function generateTTS() {
   const status = document.getElementById('status');
   const audioDiv = document.getElementById('audioPlayer');
   const targetLang = document.getElementById('targetLang').value;
-
   if (!currentTranslatedText) return;
 
   status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Generating Voice...`;
@@ -164,7 +177,6 @@ async function generateTTS() {
   try {
     const res = await fetch("/tts", { method: "POST", body: formData });
     const data = await res.json();
-
     if (data.status === "success" && data.audio_url) {
       status.innerHTML = `✅ Voice Generated!`;
       audioDiv.innerHTML = `<audio controls class="w-full mt-4"><source src="${data.audio_url}" type="audio/mp3"></audio>`;
@@ -180,10 +192,7 @@ async function generateSRT() {
   const status = document.getElementById('status');
   const srtDiv = document.getElementById('srtLink');
 
-  if (currentSegments.length === 0) {
-    alert("Please transcribe first!");
-    return;
-  }
+  if (currentSegments.length === 0) return alert("Please transcribe first!");
 
   status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Generating SRT...`;
 
@@ -194,13 +203,11 @@ async function generateSRT() {
   try {
     const res = await fetch("/generate_srt", { method: "POST", body: formData });
     const data = await res.json();
-    
     if (data.status === "success") {
       currentSrtFileName = data.srt_url.split('/').pop();
       status.innerHTML = `✅ SRT Generated!`;
       srtDiv.innerHTML = `
-        <a href="${data.srt_url}" download 
-           class="inline-flex items-center gap-3 bg-amber-600 text-white px-8 py-4 rounded-3xl hover:bg-amber-700">
+        <a href="${data.srt_url}" download class="inline-flex items-center gap-3 bg-amber-600 text-white px-8 py-4 rounded-3xl hover:bg-amber-700">
           📥 Download SRT Subtitle File
         </a>`;
     }
@@ -212,7 +219,6 @@ async function generateSRT() {
 async function burnSubtitles() {
   const status = document.getElementById('status');
   const burnedDiv = document.getElementById('burnedVideoLink');
-
   if (currentSegments.length === 0) return alert("Please generate SRT first!");
 
   status.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Burning subtitles into video...`;
@@ -230,8 +236,7 @@ async function burnSubtitles() {
     if (data.status === "success") {
       status.innerHTML = `✅ Subtitles Burned!`;
       burnedDiv.innerHTML = `
-        <a href="${data.video_url}" download 
-           class="inline-flex items-center gap-3 bg-red-600 text-white px-8 py-4 rounded-3xl hover:bg-red-700">
+        <a href="${data.video_url}" download class="inline-flex items-center gap-3 bg-red-600 text-white px-8 py-4 rounded-3xl hover:bg-red-700">
           📥 Download Video with Burned Subtitles
         </a>`;
     } else {

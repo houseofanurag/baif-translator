@@ -38,7 +38,7 @@
 
       <div class="text-center mb-12">
         <h2 class="text-5xl font-semibold heading-font text-slate-800 mb-3">Offline Translation Tool</h2>
-        <p class="text-slate-600 text-lg">Helping BAIF teams work without internet</p>
+        <p class="text-slate-600 text-lg">Helping BAIF teams transcribe, translate, and generate outputs</p>
       </div>
 
       <div class="grid md:grid-cols-2 gap-8">
@@ -83,21 +83,20 @@
 
       <!-- Quick Actions -->
       <div class="mt-12 flex flex-wrap gap-4 justify-center">
-        <button onclick="generateTTS()" id="ttsBtn" disabled
-                class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
+        <button onclick="generateTTS()" id="ttsBtn" disabled class="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
           <i class="fas fa-volume-up"></i> Generate Voice
         </button>
-        <button onclick="generateSRT()" id="srtBtn" disabled
-                class="flex-1 md:flex-none bg-amber-600 hover:bg-amber-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
+        <button onclick="generateSRT()" id="srtBtn" disabled class="flex-1 md:flex-none bg-amber-600 hover:bg-amber-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
           <i class="fas fa-file-alt"></i> Generate SRT
         </button>
-        <button onclick="burnSubtitles()" id="burnBtn" disabled
-                class="flex-1 md:flex-none bg-red-600 hover:bg-red-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
+        <button onclick="burnSubtitles()" id="burnBtn" disabled class="flex-1 md:flex-none bg-red-600 hover:bg-red-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
           <i class="fas fa-fire"></i> Burn Subtitles into Video
         </button>
-        <button onclick="downloadTranslatedText()" id="downloadBtn" disabled
-                class="flex-1 md:flex-none bg-violet-600 hover:bg-violet-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
+        <button onclick="downloadTranslatedText()" id="downloadBtn" disabled class="flex-1 md:flex-none bg-violet-600 hover:bg-violet-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg disabled:opacity-50">
           <i class="fas fa-download"></i> Download Translated Text
+        </button>
+        <button onclick="clearAll()" class="flex-1 md:flex-none bg-slate-600 hover:bg-slate-700 text-white font-semibold py-4 px-10 rounded-3xl flex items-center justify-center gap-3 text-lg">
+          <i class="fas fa-trash"></i> Clear All
         </button>
       </div>
 
