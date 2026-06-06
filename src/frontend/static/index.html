@@ -19,7 +19,6 @@
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800">
 
-  <!-- Header -->
   <header class="bg-white shadow-sm border-b sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-3">
@@ -39,13 +38,11 @@
 
   <div class="max-w-7xl mx-auto px-6 py-8">
 
-    <!-- Hero Status Banner -->
     <div class="hero-bg rounded-3xl p-8 text-white mb-8 shadow-lg shadow-blue-900/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div>
         <h2 class="text-3xl font-bold heading-font mb-1">Local Resource Panel</h2>
         <p class="text-blue-100 text-sm">Transcribe speech, translate locally, and generate localized audio & subtitle outputs securely.</p>
       </div>
-      <!-- Processing Step Progress Map -->
       <div class="flex items-center gap-2 bg-black/10 p-3 rounded-2xl w-full md:w-auto overflow-x-auto">
         <div id="step1-badge" class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">1</div>
         <span class="text-xs font-medium text-blue-200">Audio/Video</span>
@@ -60,20 +57,17 @@
 
     <div class="grid lg:grid-cols-12 gap-8">
 
-      <!-- Main Interactive Work Space -->
       <div class="lg:col-span-8 space-y-8">
 
-        <!-- Stage 1 & Stage 2 Inputs -->
         <div class="grid md:grid-cols-2 gap-6">
           
-          <!-- Transcription Card -->
           <div class="glass-card shadow-sm border border-slate-200/60">
             <div class="flex items-center gap-4 mb-6">
               <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
                 <i class="fas fa-microphone text-xl"></i>
               </div>
               <div>
-                <h3 class="text-lg font-bold text-slate-900">1. Input Media</h3>
+                <h3 class="text-lg font-bold text-slate-900">1. Input Media File</h3>
                 <p class="text-xs text-slate-500">Supports MP3, WAV, MP4, MOV</p>
               </div>
             </div>
@@ -94,35 +88,61 @@
             </button>
           </div>
 
-          <!-- Translation Card -->
-          <div class="glass-card shadow-sm border border-slate-200/60">
-            <div class="flex items-center gap-4 mb-6">
+          <div class="glass-card shadow-sm border border-slate-200/60 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600">
+                    <i class="fas fa-microphone-alt text-xl"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-lg font-bold text-slate-900">Field Mic Capture</h3>
+                    <p class="text-xs text-slate-500">Record notes directly live</p>
+                  </div>
+                </div>
+                <span id="recordingTimer" class="text-xs font-mono font-bold text-slate-400 hidden bg-slate-100 px-2.5 py-1 rounded-lg">00:00</span>
+              </div>
+              <p class="text-xs text-slate-500 leading-relaxed mt-2">
+                Capture voice inputs on-site without external equipment. Audio saves straight to local memory files before triggering MLX Whisper.
+              </p>
+            </div>
+
+            <div class="flex items-center gap-3 mt-6">
+              <button id="startRecordBtn" onclick="startRecording()" class="flex-1 bg-blue-600 text-white text-xs px-4 py-3.5 rounded-xl font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm">
+                <i class="fas fa-circle text-[8px] animate-pulse text-rose-400"></i> Start Mic
+              </button>
+              <button id="stopRecordBtn" onclick="stopRecording()" disabled class="flex-1 bg-slate-100 text-slate-400 text-xs px-4 py-3.5 rounded-xl font-semibold transition flex items-center justify-center gap-2 cursor-not-allowed">
+                <i class="fas fa-square text-[8px]"></i> Stop & Parse
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card shadow-sm border border-slate-200/60">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
               <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
                 <i class="fas fa-language text-xl"></i>
               </div>
               <div>
-                <h3 class="text-lg font-bold text-slate-900">2. Local Translation</h3>
-                <p class="text-xs text-slate-500">Pick native Indian language</p>
+                <h3 class="text-lg font-bold text-slate-900">2. Local Translation Engine</h3>
+                <p class="text-xs text-slate-500">Target localized language transformations</p>
               </div>
             </div>
-            
-            <div class="space-y-2">
-              <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Language</label>
-              <select id="targetLang" class="w-full p-3.5 border border-slate-200 rounded-16 text-base bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
+            <div class="flex-1 max-w-xs w-full">
+              <select id="targetLang" class="w-full p-3 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
                 <option value="en">English (Original Language Check)</option>
                 <option value="hi">Hindi (हिंदी)</option>
                 <option value="mr">Marathi (मराठी)</option>
               </select>
             </div>
-
-            <button onclick="translateText()" id="translateBtn" disabled
-                    class="mt-11 w-full btn-secondary flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none shadow-sm">
-              <i class="fas fa-globe text-sm"></i> Run Local Translation
-            </button>
           </div>
+          <button onclick="translateText()" id="translateBtn" disabled
+                  class="mt-4 w-full btn-secondary flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none shadow-sm">
+            <i class="fas fa-globe text-sm"></i> Run Local Translation Pipeline
+          </button>
         </div>
 
-        <!-- Dynamic Output Previews (Hidden when empty) -->
         <div id="mediaPreviews" class="glass-card shadow-sm border border-slate-200/60 hidden space-y-4">
           <h4 class="font-bold text-sm text-slate-500 uppercase tracking-wider">Generated Media Previews</h4>
           <div id="audioPlayer"></div>
@@ -131,22 +151,18 @@
           </div>
         </div>
 
-        <!-- Real-time Text Result Dashboard -->
         <div class="glass-card shadow-sm border border-slate-200/60">
           <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-slate-900">
             <i class="fas fa-align-left text-blue-600 text-sm"></i> Context Output Console
           </h3>
           <div id="resultContent" class="result-box border border-slate-100 flex flex-col justify-center">
-            <!-- Filled dynamically by JavaScript -->
-          </div>
+            </div>
         </div>
 
       </div>
 
-      <!-- Sidebar Controls & Navigation -->
       <div class="lg:col-span-4 space-y-6">
 
-        <!-- Technical Output Actions Pack -->
         <div class="glass-card shadow-sm border border-slate-200/60">
           <h3 class="font-bold text-base text-slate-900 mb-4 flex items-center gap-2">
             <i class="fas fa-cogs text-slate-500"></i> Generation Suite
@@ -181,7 +197,6 @@
           </div>
         </div>
 
-        <!-- Media Download Links Panel -->
         <div id="downloadLinksCard" class="glass-card shadow-sm border border-slate-200/60 hidden space-y-3">
           <h3 class="font-bold text-xs text-slate-400 uppercase tracking-wider flex items-center gap-2">
             <i class="fas fa-cloud-download-alt"></i> Ready Output Packages
@@ -190,24 +205,20 @@
           <div id="burnedVideoLink"></div>
         </div>
 
-        <!-- Persistent History Logs -->
         <div class="glass-card shadow-sm border border-slate-200/60">
           <h3 class="font-bold text-sm text-slate-900 mb-4 flex items-center gap-2">
             <i class="fas fa-history text-slate-400"></i> Local Activity Logs
           </h3>
           <div id="historyList" class="space-y-3 text-xs max-h-[300px] overflow-y-auto pr-1">
-            <!-- Dynamic History -->
-          </div>
+            </div>
         </div>
 
       </div>
     </div>
   </div>
 
-  <!-- Realtime Floating Processing Status Loader -->
   <div id="status" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-950 text-white shadow-2xl rounded-2xl px-6 py-4 text-xs font-semibold hidden tracking-wide flex items-center gap-3 border border-slate-800 z-50 min-w-[320px]">
-    <!-- Handled explicitly through app.js statuses -->
-  </div>
+    </div>
 
   <script src="/static/js/app.js"></script>
 </body>

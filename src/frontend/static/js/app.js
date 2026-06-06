@@ -1,5 +1,5 @@
 // ================================================
-// BAIF Offline Translator - Complete Fixed & Improved Frontend Engine
+// BAIF Offline Translator - Complete Frontend Engine
 // ================================================
 
 let currentText = "";
@@ -7,6 +7,12 @@ let currentTranslatedText = "";
 let currentSegments = [];
 let currentFileName = "";
 let currentSrtFileName = "";
+
+// Microphone Capture Instances Tracking
+let mediaRecorder;
+let audioChunks = [];
+let recordInterval;
+let startTime;
 
 function updateButtonStates() {
   const hasTranscription = currentText.trim().length > 0;
@@ -362,6 +368,113 @@ function downloadTranslatedText() {
   a.download = `BAIF_Translated_${targetLang.toUpperCase()}_${currentFileName || 'document'}.txt`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ================================================
+// LIVE MIC RECORDING CAPTURE SUB-SYSTEM
+// ================================================
+
+async function startRecording() {
+  audioChunks = [];
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    
+    // Auto-detect container structures based on browser engine specifications
+    const options = MediaRecorder.isTypeSupported('audio/webm') ? { mimeType: 'audio/webm' } : { mimeType: 'audio/mp4' };
+    mediaRecorder = new MediaRecorder(stream, options);
+    
+    mediaRecorder.ondataavailable = event => {
+      if (event.data.size > 0) audioChunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      const extension = options.mimeType.includes('webm') ? 'webm' : 'mp4';
+      const audioBlob = new Blob(audioChunks, { type: options.mimeType });
+      const audioFile = new File([audioBlob], `live_capture_${Date.now()}.${extension}`, { type: options.mimeType });
+      
+      // Release hardware audio track bindings cleanly
+      stream.getTracks().forEach(track => track.stop());
+      
+      // Relay audio payload straight into processing pipeline
+      await uploadLiveRecording(audioFile);
+    };
+
+    // UI Configuration Mapping
+    document.getElementById('startRecordBtn').disabled = true;
+    document.getElementById('startRecordBtn').classList.add('opacity-40', 'cursor-not-allowed');
+    
+    const stopBtn = document.getElementById('stopRecordBtn');
+    stopBtn.disabled = false;
+    stopBtn.className = "flex-1 bg-rose-600 text-white text-xs px-4 py-3.5 rounded-xl font-semibold hover:bg-rose-700 transition flex items-center justify-center gap-2 shadow-sm";
+
+    // Launch running elapsed clock matrix
+    startTime = Date.now();
+    const timerEl = document.getElementById('recordingTimer');
+    timerEl.classList.remove('hidden', 'text-slate-400');
+    timerEl.classList.add('text-rose-600', 'animate-pulse');
+    
+    recordInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      const secs = String(elapsed % 60).padStart(2, '0');
+      timerEl.textContent = `${mins}:${secs}`;
+    }, 1000);
+
+    mediaRecorder.start();
+    showStatus("🔴 Microphone is live. Recording audio...", "info");
+
+  } catch (err) {
+    console.error("Mic Access Denied:", err);
+    alert("Microphone hardware access denied. Check browser privacy credentials.");
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+    
+    clearInterval(recordInterval);
+    const timerEl = document.getElementById('recordingTimer');
+    timerEl.classList.add('hidden');
+    
+    document.getElementById('startRecordBtn').disabled = false;
+    document.getElementById('startRecordBtn').classList.remove('opacity-40', 'cursor-not-allowed');
+    
+    const stopBtn = document.getElementById('stopRecordBtn');
+    stopBtn.disabled = true;
+    stopBtn.className = "flex-1 bg-slate-100 text-slate-400 text-xs px-4 py-3.5 rounded-xl font-semibold transition flex items-center justify-center gap-2 cursor-not-allowed";
+  }
+}
+
+async function uploadLiveRecording(file) {
+  currentFileName = file.name;
+  currentText = ""; 
+  currentTranslatedText = "";
+  currentSegments = [];
+  currentSrtFileName = "";
+  renderResult();
+  updateButtonStates();
+
+  showStatus("Processing live recording audio bytes through local MLX Whisper compute layers...", "info");
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const res = await fetch("/transcribe", { method: "POST", body: formData });
+    const data = await res.json();
+    if (data.status === "success") {
+      currentText = data.transcribed_text;
+      currentSegments = data.segments || [];
+      showStatus("✅ Live clip safely transcribed inside system core memory structures", "success");
+      renderResult();
+      updateButtonStates();
+    } else {
+      showStatus(`❌ Error processing live stream: ${data.message}`, "error");
+    }
+  } catch (e) {
+    showStatus("❌ Local processing of real-time speech dropped down.", "error");
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
