@@ -1,79 +1,77 @@
-/* Custom Styles for BAIF Translator */
+/* Custom UI Base Design Architecture for BAIF Translator */
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.97);
-  backdrop-filter: blur(12px);
+  background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 24px;
-  padding: 32px;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  padding: 28px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card:hover {
+  box-shadow: 0 12px 20px -8px rgba(148, 163, 184, 0.25);
+}
+
+.rounded-16 {
+  border-radius: 16px;
 }
 
 .btn-primary {
-  background-color: #0066cc;
-  color: white;
+  background-color: #2563eb;
+  color: #ffffff;
   font-weight: 600;
-  padding: 16px;
+  padding: 14px 24px;
   border-radius: 16px;
-  transition: all 0.2s;
+  border: 1px solid #1d4ed8;
+  transition: all 0.15s ease-in-out;
 }
 
 .btn-primary:hover {
-  background-color: #0055aa;
-  transform: translateY(-2px);
+  background-color: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
 }
 
 .btn-secondary {
   background-color: #10b981;
-  color: white;
+  color: #ffffff;
   font-weight: 600;
-  padding: 16px;
+  padding: 14px 24px;
   border-radius: 16px;
-  transition: all 0.2s;
+  border: 1px solid #047857;
+  transition: all 0.15s ease-in-out;
 }
 
 .btn-secondary:hover {
   background-color: #059669;
-  transform: translateY(-2px);
-}
-
-.btn-voice {
-  background-color: #10b981;
-  color: white;
-  font-weight: 600;
-  padding: 16px 32px;
-  border-radius: 9999px;
-  transition: all 0.2s;
-}
-
-.btn-voice:hover {
-  background-color: #059669;
-}
-
-.btn-srt {
-  background-color: #f59e0b;
-  color: white;
-  font-weight: 600;
-  padding: 16px 32px;
-  border-radius: 9999px;
-  transition: all 0.2s;
-}
-
-.btn-srt:hover {
-  background-color: #d97706;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
 .result-box {
-  background: white;
-  border-radius: 24px;
-  padding: 32px;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  min-height: 220px;
+  background: #f8fafc;
+  border-radius: 18px;
+  padding: 20px;
+  min-height: 240px;
 }
 
-/* Responsive */
+/* Custom Scrollbar styling for smooth localized asset lists */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 @media (max-width: 768px) {
   .glass-card {
-    padding: 24px;
+    padding: 20px;
+    border-radius: 20px;
   }
 }

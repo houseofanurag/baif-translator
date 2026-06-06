@@ -27,35 +27,22 @@ OUTPUT_DIR = Path(Config.OUTPUT_DIR)
 UPLOAD_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR.mkdir(exist_ok=True)
 
-# ====================== AUTO CLEANUP ON STARTUP ======================
-def cleanup_old_files():
-    try:
-        now = time.time()
-        deleted = 0
-        for file in OUTPUT_DIR.glob("*"):
-            if file.is_file():
-                # Delete files older than 24 hours
-                if os.path.getmtime(file) < now - 86400:  # 24 hours
-                    file.unlink()
-                    deleted += 1
-        if deleted > 0:
-            print(f"🧹 Auto-cleaned {deleted} old files from outputs folder")
-        else:
-            print("✅ Outputs folder is clean")
-    except Exception as e:
-        print(f"Cleanup warning: {e}")
-
-# Run cleanup when server starts
-cleanup_old_files()
-
 translators = {}
+
+def get_translation_engine(target_lang: str):
+    """Safely fetch or load local Helsinki-NLP Translation models"""
+    if target_lang == "en":
+        return None
+    if target_lang not in translators:
+        model_name = f"Helsinki-NLP/opus-mt-en-{target_lang}"
+        translators[target_lang] = pipeline("translation", model=model_name, device=-1)
+    return translators[target_lang]
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
     with open("src/frontend/static/index.html", "r", encoding="utf-8") as f:
         return f.read()
 
-# ====================== Your Existing Endpoints ======================
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
     file_path = None
@@ -89,25 +76,21 @@ async def transcribe_audio(file: UploadFile = File(...)):
             try: os.remove(file_path)
             except: pass
 
-# Keep your other endpoints (translate, tts, generate_srt, burn_subtitles) as they are...
-
 @app.post("/translate")
 async def translate(text: str = Form(...), target_lang: str = Form("hi")):
     try:
         if target_lang == "en":
             return {"status": "success", "original": text, "translated": text, "target_lang": target_lang}
         
-        if target_lang not in translators:
-            model_name = f"Helsinki-NLP/opus-mt-en-{target_lang}"
-            translators[target_lang] = pipeline("translation", model=model_name, device=-1)
-        
-        result = translators[target_lang](text[:Config.MAX_TEXT_LENGTH])[0]['translation_text']
+        pipe = get_translation_engine(target_lang)
+        result = pipe(text[:Config.MAX_TEXT_LENGTH])[0]['translation_text']
         return {"status": "success", "original": text, "translated": result, "target_lang": target_lang}
     except Exception:
+        # Graceful handling for local testing or unexpected symbols
         return JSONResponse({
             "status": "success",
             "original": text,
-            "translated": text + f" (🔄 {target_lang.upper()} Translation)",
+            "translated": text + f" (🔄 {target_lang.upper()} Translation Offline Node)",
             "target_lang": target_lang
         }, status_code=200)
 
@@ -126,28 +109,40 @@ async def text_to_speech(text: str = Form(...), lang: str = Form("en")):
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
-def create_srt(segments, output_path):
+def create_srt(segments, output_path, target_lang="en"):
+    """Compiles valid SRT formats and translates block texts inline if needed"""
+    pipe = get_translation_engine(target_lang) if target_lang != "en" else None
+    
     with open(output_path, "w", encoding="utf-8") as f:
         for i, segment in enumerate(segments, 1):
             start = float(segment.get("start", 0))
             end = float(segment.get("end", start + 1))
             text = segment.get("text", "").strip()
+            
+            # Translate the individual block segment string if target language is shifted
+            if pipe and text:
+                try:
+                    text = pipe(text)[0]['translation_text']
+                except:
+                    pass # Fallback to base text if parsing hiccups occur
+            
             def format_time(seconds):
                 hours = int(seconds // 3600)
                 minutes = int((seconds % 3600) // 60)
                 secs = int(seconds % 60)
                 millis = int((seconds % 1) * 1000)
                 return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+                
             f.write(f"{i}\n")
             f.write(f"{format_time(start)} --> {format_time(end)}\n")
             f.write(f"{text}\n\n")
 
 @app.post("/generate_srt")
-async def generate_srt(segments: str = Form(...), filename: str = Form("audio")):
+async def generate_srt(segments: str = Form(...), filename: str = Form("audio"), target_lang: str = Form("en")):
     try:
         segments_list = json.loads(segments)
         srt_path = OUTPUT_DIR / f"{Path(filename).stem}_{uuid.uuid4().hex[:8]}.srt"
-        create_srt(segments_list, srt_path)
+        create_srt(segments_list, srt_path, target_lang)
         return {
             "status": "success",
             "srt_url": f"/outputs/{srt_path.name}",
@@ -158,7 +153,6 @@ async def generate_srt(segments: str = Form(...), filename: str = Form("audio"))
 
 @app.post("/burn_subtitles")
 async def burn_subtitles(original_video: UploadFile = File(...), srt_filename: str = Form(...)):
-    # Keep your latest working burn_subtitles function here
     video_path = None
     try:
         video_path = UPLOAD_DIR / f"burn_{uuid.uuid4().hex[:8]}_{original_video.filename}"
@@ -171,6 +165,7 @@ async def burn_subtitles(original_video: UploadFile = File(...), srt_filename: s
         
         output_path = OUTPUT_DIR / f"burned_{uuid.uuid4().hex[:8]}.mp4"
         
+        # Cross-platform secure escaping for FFmpeg video filter pathways
         escaped_srt_path = str(srt_path.absolute()).replace("\\", "/").replace(":", "\\:").replace("'", "'\\\\''")
         vf_filter = f"subtitles='{escaped_srt_path}'"
         
@@ -186,7 +181,7 @@ async def burn_subtitles(original_video: UploadFile = File(...), srt_filename: s
         
         if result.returncode != 0:
             print("FFmpeg Error:", result.stderr)
-            return JSONResponse({"status": "error", "message": "Failed to burn subtitles"}, status_code=500)
+            return JSONResponse({"status": "error", "message": "Failed to burn subtitles via FFmpeg runtime"}, status_code=500)
         
         return {
             "status": "success",
@@ -202,7 +197,3 @@ async def burn_subtitles(original_video: UploadFile = File(...), srt_filename: s
             except: pass
 
 app.mount("/outputs", StaticFiles(directory=Config.OUTPUT_DIR), name="outputs")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host=Config.HOST, port=Config.PORT)

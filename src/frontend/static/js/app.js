@@ -1,5 +1,5 @@
 // ================================================
-// BAIF Offline Translator - Complete Working JS
+// BAIF Offline Translator - Complete Fixed & Improved Frontend Engine
 // ================================================
 
 let currentText = "";
@@ -9,65 +9,133 @@ let currentFileName = "";
 let currentSrtFileName = "";
 
 function updateButtonStates() {
-  const hasTranscription = currentText.length > 0;
-  const hasTranslation = currentTranslatedText.length > 0;
+  const hasTranscription = currentText.trim().length > 0;
+  const hasTranslation = currentTranslatedText.trim().length > 0 && currentTranslatedText !== currentText;
   
-  if (document.getElementById('translateBtn')) document.getElementById('translateBtn').disabled = !hasTranscription;
-  if (document.getElementById('srtBtn')) document.getElementById('srtBtn').disabled = !hasTranscription;
-  if (document.getElementById('burnBtn')) document.getElementById('burnBtn').disabled = !hasTranscription;
-  if (document.getElementById('downloadBtn')) document.getElementById('downloadBtn').disabled = !hasTranslation;
-  if (document.getElementById('ttsBtn')) document.getElementById('ttsBtn').disabled = !hasTranscription;
+  document.getElementById('translateBtn').disabled = !hasTranscription;
+  document.getElementById('srtBtn').disabled = !hasTranscription;
+  document.getElementById('burnBtn').disabled = !hasSrtFile();
+  document.getElementById('downloadBtn').disabled = !hasTranslation;
+  document.getElementById('ttsBtn').disabled = !hasTranslation;
+
+  // Update visual wizard steps based on active milestones
+  const badge1 = document.getElementById('step1-badge');
+  const badge2 = document.getElementById('step2-badge');
+  const badge3 = document.getElementById('step3-badge');
+
+  if (hasTranscription) {
+    badge1.className = "w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold";
+    badge1.innerHTML = "✓";
+    badge2.className = "w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold";
+  }
+  if (hasTranslation) {
+    badge2.className = "w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold";
+    badge2.innerHTML = "✓";
+    badge3.className = "w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold";
+  }
+}
+
+function hasSrtFile() {
+  return currentSrtFileName.trim().length > 0;
+}
+
+function handleFileSelect() {
+  const fileInput = document.getElementById('mediaFile');
+  const fileNameEl = document.getElementById('fileName');
+  const uploadIcon = document.getElementById('uploadIcon');
+  const uploadPrompt = document.getElementById('uploadPrompt');
+
+  if (fileInput.files.length > 0) {
+    currentFileName = fileInput.files[0].name;
+    fileNameEl.textContent = currentFileName;
+    fileNameEl.classList.remove('hidden');
+    uploadPrompt.textContent = "Media Selected Ready";
+    uploadIcon.className = "fas fa-check-circle text-2xl text-emerald-500";
+    
+    // Auto-setup simple video layout preview container if it's an MP4/MOV format
+    const isVideo = fileInput.files[0].type.startsWith('video/') || currentFileName.endsWith('.mp4') || currentFileName.endsWith('.mov');
+    if (isVideo) {
+      const url = URL.createObjectURL(fileInput.files[0]);
+      const previewVideo = document.getElementById('previewVideo');
+      previewVideo.src = url;
+      document.getElementById('videoContainer').classList.remove('hidden');
+      document.getElementById('mediaPreviews').classList.remove('hidden');
+    }
+  }
 }
 
 function renderResult() {
   const container = document.getElementById('resultContent');
   if (!container) return;
 
-  let html = '';
+  if (!currentText && !currentTranslatedText) {
+    container.innerHTML = `
+      <div class="text-center py-12 text-slate-400">
+        <i class="fas fa-folder-open text-3xl mb-3 block text-slate-300"></i>
+        <p class="text-sm">Results will appear here dynamically after processing local models.</p>
+      </div>`;
+    return;
+  }
+
+  let html = '<div class="grid md:grid-cols-2 gap-6">';
 
   if (currentText) {
     html += `
-      <div>
-        <h4 class="font-semibold text-blue-700 mb-3 flex items-center gap-2">
-          <i class="fas fa-file-alt"></i> Original Text
+      <div class="space-y-2">
+        <h4 class="text-xs font-bold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span> Original Transcription Output
         </h4>
-        <div class="bg-slate-50 p-6 rounded-2xl text-slate-700 leading-relaxed whitespace-pre-wrap">${currentText}</div>
+        <div class="bg-slate-50 p-4 border border-slate-200/50 rounded-2xl text-slate-700 text-sm leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto">${currentText}</div>
       </div>`;
   }
 
-  if (currentTranslatedText) {
+  if (currentTranslatedText && currentTranslatedText !== currentText) {
     const targetLang = document.getElementById('targetLang').value.toUpperCase();
     html += `
-      <div>
-        <h4 class="font-semibold text-emerald-700 mb-3 flex items-center gap-2">
-          <i class="fas fa-language"></i> Translated (${targetLang})
+      <div class="space-y-2">
+        <h4 class="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Translated Language Text (${targetLang})
         </h4>
-        <div class="bg-emerald-50 p-6 rounded-2xl text-slate-700 leading-relaxed whitespace-pre-wrap">${currentTranslatedText}</div>
+        <div class="bg-emerald-50 p-4 border border-emerald-200/50 rounded-2xl text-slate-800 text-sm leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto font-medium">${currentTranslatedText}</div>
+      </div>`;
+  } else if (currentText) {
+    html += `
+      <div class="space-y-2 flex flex-col justify-center items-center bg-slate-50/50 border border-dashed border-slate-200 rounded-2xl p-4 text-slate-400 text-xs">
+        <i class="fas fa-arrow-left text-lg mb-1 text-slate-300"></i>
+        <span>Select target language above to apply local conversion models.</span>
       </div>`;
   }
 
-  container.innerHTML = html || '<p class="text-slate-400 text-center py-16">Results will appear here after transcription...</p>';
+  html += '</div>';
+  container.innerHTML = html;
 }
 
-function showStatus(message, isError = false) {
+function showStatus(message, statusType = "info") {
   const status = document.getElementById('status');
   if (!status) return;
   status.classList.remove('hidden');
-  status.innerHTML = message;
-  status.style.color = isError ? '#ef4444' : '#10b981';
-  setTimeout(() => status.classList.add('hidden'), 7000);
+
+  let icon = '<i class="fas fa-circle-notch animate-spin text-blue-400 text-sm"></i>';
+  if (statusType === "success") icon = '<i class="fas fa-check-circle text-emerald-400 text-sm"></i>';
+  if (statusType === "error") icon = '<i class="fas fa-exclamation-triangle text-rose-400 text-sm"></i>';
+
+  status.innerHTML = `${icon} <span class="flex-1">${message}</span>`;
+  
+  if (statusType === "success" || statusType === "error") {
+    setTimeout(() => status.classList.add('hidden'), 5000);
+  }
 }
 
-// ==================== History ====================
+// ==================== Local History Trackers ====================
 function saveToHistory() {
   if (!currentTranslatedText) return;
   const history = JSON.parse(localStorage.getItem('baif_history') || '[]');
   const entry = {
     timestamp: new Date().toLocaleString('en-IN'),
-    original: currentText.substring(0, 80) + (currentText.length > 80 ? '...' : ''),
-    translated: currentTranslatedText.substring(0, 80) + (currentTranslatedText.length > 80 ? '...' : ''),
+    original: currentText.substring(0, 60) + (currentText.length > 60 ? '...' : ''),
+    translated: currentTranslatedText.substring(0, 60) + (currentTranslatedText.length > 60 ? '...' : ''),
     targetLang: document.getElementById('targetLang').value.toUpperCase(),
-    fileName: currentFileName || 'Untitled'
+    fileName: currentFileName || 'Local Track'
   };
   history.unshift(entry);
   localStorage.setItem('baif_history', JSON.stringify(history.slice(0, 5)));
@@ -79,20 +147,24 @@ function renderHistory() {
   if (!container) return;
   const history = JSON.parse(localStorage.getItem('baif_history') || '[]');
   if (history.length === 0) {
-    container.innerHTML = '<p class="text-slate-400 text-sm italic">No previous translations yet.</p>';
+    container.innerHTML = '<p class="text-slate-400 text-xs italic py-2">No local operations processed in this browser engine session.</p>';
     return;
   }
   container.innerHTML = history.map(item => `
-    <div class="bg-slate-50 p-4 rounded-2xl text-sm border border-slate-100">
-      <div class="text-xs text-slate-500 mb-1">${item.timestamp} • ${item.targetLang}</div>
-      <div class="font-medium text-slate-700 line-clamp-2">${item.translated}</div>
+    <div class="bg-white p-3 rounded-xl text-xs border border-slate-200/60 shadow-2xs">
+      <div class="flex justify-between text-[10px] text-slate-400 mb-1 font-medium">
+        <span>${item.timestamp}</span>
+        <span class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-bold">${item.targetLang}</span>
+      </div>
+      <div class="font-semibold text-slate-800 line-clamp-1 mb-0.5">${item.translated}</div>
+      <div class="text-[10px] text-slate-400 truncate"><i class="fas fa-paperclip mr-0.5"></i> ${item.fileName}</div>
     </div>
   `).join('');
 }
 
-// ==================== Clear All ====================
+// ==================== Clear All View States ====================
 function clearAll() {
-  if (!confirm("Clear all current results?")) return;
+  if (!confirm("Flush all runtime localized text fields and cached instances?")) return;
 
   currentText = currentTranslatedText = "";
   currentSegments = [];
@@ -101,30 +173,45 @@ function clearAll() {
 
   document.getElementById('mediaFile').value = "";
   const fileNameEl = document.getElementById('fileName');
-  if (fileNameEl) fileNameEl.textContent = "";
+  if (fileNameEl) {
+    fileNameEl.textContent = "";
+    fileNameEl.classList.add('hidden');
+  }
+  document.getElementById('uploadIcon').className = "fas fa-cloud-upload-alt text-2xl text-slate-400";
+  document.getElementById('uploadPrompt').textContent = "Choose a file to begin";
 
   renderResult();
   document.getElementById('audioPlayer').innerHTML = "";
+  document.getElementById('videoContainer').classList.add('hidden');
+  document.getElementById('mediaPreviews').classList.add('hidden');
   document.getElementById('srtLink').innerHTML = "";
   document.getElementById('burnedVideoLink').innerHTML = "";
+  document.getElementById('downloadLinksCard').classList.add('hidden');
+  
+  // Reset wizards
+  document.getElementById('step1-badge').className = "w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold";
+  document.getElementById('step1-badge').innerHTML = "1";
+  document.getElementById('step2-badge').className = "w-8 h-8 rounded-full bg-white/20 text-white/60 flex items-center justify-center text-xs font-bold";
+  document.getElementById('step3-badge').className = "w-8 h-8 rounded-full bg-white/20 text-white/60 flex items-center justify-center text-xs font-bold";
+
   updateButtonStates();
 }
 
-// ==================== Core Functions ====================
+// ==================== Operational Core Tasks ====================
 
 async function transcribe() {
   const fileInput = document.getElementById('mediaFile');
-  if (!fileInput.files.length) return alert("Please select a file");
+  if (!fileInput.files.length) return alert("Please map an operational audio or video media file first.");
 
   currentFileName = fileInput.files[0].name;
-  const fileNameEl = document.getElementById('fileName');
-  if (fileNameEl) fileNameEl.textContent = `File: ${currentFileName}`;
-
-  currentText = currentTranslatedText = "";
+  currentText = ""; 
+  currentTranslatedText = "";
   currentSegments = [];
+  currentSrtFileName = "";
   renderResult();
+  updateButtonStates();
 
-  showStatus(`Transcribing ${currentFileName}...`);
+  showStatus(`MLX Whisper initializing local compute cores for ${currentFileName}...`, "info");
 
   const formData = new FormData();
   formData.append("file", fileInput.files[0]);
@@ -133,21 +220,23 @@ async function transcribe() {
     const res = await fetch("/transcribe", { method: "POST", body: formData });
     const data = await res.json();
     if (data.status === "success") {
-      currentText = currentTranslatedText = data.transcribed_text;
+      currentText = data.transcribed_text;
       currentSegments = data.segments || [];
-      showStatus("✅ Transcription Completed");
+      showStatus("✅ MLX Core Transcription Finished", "success");
       renderResult();
       updateButtonStates();
+    } else {
+      showStatus(`❌ Error: ${data.message}`, "error");
     }
   } catch (e) {
-    showStatus("❌ Transcription Failed", true);
+    showStatus("❌ Transcription engine execution dropped or timed out.", "error");
   }
 }
 
 async function translateText() {
-  if (!currentText) return alert("Please transcribe first");
+  if (!currentText) return alert("Missing base context transcript. Run transcription first.");
   const targetLang = document.getElementById('targetLang').value;
-  showStatus("Translating...");
+  showStatus(`Loading local HuggingFace Pipeline Transformer for target syntax: [${targetLang.toUpperCase()}]...`, "info");
 
   const formData = new FormData();
   formData.append("text", currentText);
@@ -158,26 +247,26 @@ async function translateText() {
     const data = await res.json();
     if (data.status === "success") {
       currentTranslatedText = data.translated;
-      showStatus("✅ Translation Completed");
+      showStatus(`✅ Translation complete to [${targetLang.toUpperCase()}]`, "success");
       renderResult();
       updateButtonStates();
       saveToHistory();
     }
   } catch (e) {
-    showStatus("❌ Translation Failed", true);
+    showStatus("❌ Translation framework compute encountered an error.", "error");
   }
 }
 
 async function generateTTS() {
-  if (!currentTranslatedText) return alert("Please translate first");
+  if (!currentTranslatedText) return alert("Please process translation before building speech synthesis.");
   const targetLang = document.getElementById('targetLang').value;
 
   if (targetLang !== "en") {
-    showStatus("🔊 Voice generation is currently available only for English.<br>Hindi & Marathi voices coming soon.", false);
+    showStatus("🔊 Voice generation is currently supported natively for English text values. Hindi & Marathi expansions require optional local model weights.", "error");
     return;
   }
 
-  showStatus("Generating voice...");
+  showStatus("Executing hardware-accelerated speech synthesis command pipelines...", "info");
 
   const formData = new FormData();
   formData.append("text", currentTranslatedText);
@@ -187,46 +276,56 @@ async function generateTTS() {
     const res = await fetch("/tts", { method: "POST", body: formData });
     const data = await res.json();
     if (data.status === "success" && data.audio_url) {
-      showStatus("✅ Voice Generated!");
-      document.getElementById('audioPlayer').innerHTML = `<audio controls class="w-full mt-4"><source src="${data.audio_url}" type="audio/mp3"></audio>`;
+      showStatus("✅ Localized Audio Clip Created!", "success");
+      document.getElementById('mediaPreviews').classList.remove('hidden');
+      document.getElementById('audioPlayer').innerHTML = `
+        <label class="text-[10px] font-bold text-emerald-600 block mb-1 uppercase tracking-wider">Synthesized English Voice Output</label>
+        <audio controls class="w-full rounded-lg bg-slate-50 border p-1"><source src="${data.audio_url}" type="audio/mp3"></audio>`;
     }
   } catch (e) {
-    showStatus("❌ Voice Generation Failed", true);
+    showStatus("❌ Local speech engine pipeline processing dropped.", "error");
   }
 }
 
 async function generateSRT() {
-  if (currentSegments.length === 0) return alert("Please transcribe first!");
+  if (currentSegments.length === 0) return alert("No active timeline matrices found. Transcribe your target video first.");
 
-  showStatus("Generating SRT...");
+  showStatus("Calculating target language timestamps and packing subtitle data structure...", "info");
 
+  // CRITICAL IMPROVEMENT: Pass target language to translate subtitle blocks sequentially before compiling file
+  const targetLang = document.getElementById('targetLang').value;
   const formData = new FormData();
   formData.append("segments", JSON.stringify(currentSegments));
   formData.append("filename", currentFileName || "baif_recording");
+  formData.append("target_lang", targetLang);
 
   try {
     const res = await fetch("/generate_srt", { method: "POST", body: formData });
     const data = await res.json();
     if (data.status === "success") {
       currentSrtFileName = data.srt_url.split('/').pop();
-      showStatus("✅ SRT Generated!");
+      showStatus("✅ Structured SRT Matrix Compiled Successfully", "success");
+      
+      document.getElementById('downloadLinksCard').classList.remove('hidden');
       document.getElementById('srtLink').innerHTML = `
-        <a href="${data.srt_url}" download class="inline-flex items-center gap-3 bg-amber-600 text-white px-8 py-4 rounded-3xl hover:bg-amber-700">
-          📥 Download SRT Subtitle File
+        <a href="${data.srt_url}" download class="flex items-center justify-between bg-amber-50 border border-amber-200 text-amber-800 text-xs px-4 py-3 rounded-xl hover:bg-amber-100 transition font-semibold">
+          <span><i class="fas fa-file-subtitles mr-1.5"></i> Download Subtitle File (.srt)</span>
+          <i class="fas fa-download text-amber-600"></i>
         </a>`;
+      updateButtonStates();
     }
   } catch (e) {
-    showStatus("❌ SRT Generation Failed", true);
+    showStatus("❌ Subtitle generation stack encountered a matrix layout error.", "error");
   }
 }
 
 async function burnSubtitles() {
-  if (currentSegments.length === 0) return alert("Please generate SRT first!");
+  if (!hasSrtFile()) return alert("Please build standard subtitle assets before firing burning routines.");
 
-  showStatus("Burning subtitles into video...");
+  showStatus("Processing high-intensity FFmpeg multi-pass overlay. Do not close app...", "info");
 
   const fileInput = document.getElementById('mediaFile');
-  if (!fileInput.files.length) return alert("Please upload the original video again");
+  if (!fileInput.files.length) return alert("Original file trace is missing. Re-map media link.");
 
   const formData = new FormData();
   formData.append("original_video", fileInput.files[0]);
@@ -236,32 +335,38 @@ async function burnSubtitles() {
     const res = await fetch("/burn_subtitles", { method: "POST", body: formData });
     const data = await res.json();
     if (data.status === "success") {
-      showStatus("✅ Subtitles Burned!");
+      showStatus("✅ Video Burn Processing Executed Perfectly!", "success");
+      
+      document.getElementById('downloadLinksCard').classList.remove('hidden');
       document.getElementById('burnedVideoLink').innerHTML = `
-        <a href="${data.video_url}" download class="inline-flex items-center gap-3 bg-red-600 text-white px-8 py-4 rounded-3xl hover:bg-red-700">
-          📥 Download Video with Burned Subtitles
+        <a href="${data.video_url}" download class="flex items-center justify-between bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-3 rounded-xl hover:bg-red-100 transition font-semibold">
+          <span><i class="fas fa-film mr-1.5"></i> Download Embedded Subtitle Video</span>
+          <i class="fas fa-download text-red-600"></i>
         </a>`;
+      
+      // Update preview window automatically to point to the burned tracking output
+      const previewVideo = document.getElementById('previewVideo');
+      previewVideo.src = data.video_url;
     } else {
-      showStatus(`❌ ${data.message}`, true);
+      showStatus(`❌ Engine feedback details: ${data.message}`, "error");
     }
   } catch (e) {
-    showStatus("❌ Failed to burn subtitles", true);
+    showStatus("❌ Video hard rendering logic broke. Check system asset logs.", "error");
   }
 }
 
 function downloadTranslatedText() {
-  if (!currentTranslatedText) return alert("No translated text available");
+  if (!currentTranslatedText) return alert("No operational translation output is active.");
   const targetLang = document.getElementById('targetLang').value;
-  const blob = new Blob([currentTranslatedText], { type: 'text/plain' });
+  const blob = new Blob([currentTranslatedText], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `translated_${targetLang}_${currentFileName || 'output'}.txt`;
+  a.download = `BAIF_Translated_${targetLang.toUpperCase()}_${currentFileName || 'document'}.txt`;
   a.click();
   URL.revokeObjectURL(url);
 }
 
-// Initialize
 document.addEventListener('DOMContentLoaded', () => {
   updateButtonStates();
   renderResult();

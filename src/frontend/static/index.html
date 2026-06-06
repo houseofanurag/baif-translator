@@ -6,143 +6,207 @@
   <title>BAIF Offline Translator</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
   <style>
     body { font-family: 'Inter', system-ui, sans-serif; }
     .heading-font { font-family: 'Space Grotesk', sans-serif; }
-    .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(16px); }
-    .hero-bg { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); }
+    .glass { background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(16px); }
+    .hero-bg { background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); }
+    .step-badge { @apply w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm; }
   </style>
 </head>
-<body class="bg-slate-100 min-h-screen">
+<body class="bg-slate-50 min-h-screen text-slate-800">
 
   <!-- Header -->
   <header class="bg-white shadow-sm border-b sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-8 py-5 flex items-center justify-between">
-      <div class="flex items-center gap-4">
-        <div class="w-11 h-11 bg-blue-600 text-white rounded-3xl flex items-center justify-center text-3xl font-bold">🇮🇳</div>
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-blue-600 text-white rounded-2xl flex items-center justify-center text-2xl font-bold shadow-md shadow-blue-200">🇮🇳</div>
         <div>
-          <h1 class="heading-font text-3xl font-semibold text-slate-800">BAIF Translator</h1>
-          <p class="text-xs text-emerald-600 font-medium">Offline • Field Ready</p>
+          <h1 class="heading-font text-2xl font-bold text-slate-900 tracking-tight">BAIF Translator</h1>
+          <p class="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Offline • Field Ready
+          </p>
         </div>
       </div>
-      <div class="flex items-center gap-6 text-sm">
-        <span class="px-6 py-2.5 bg-emerald-100 text-emerald-700 rounded-3xl font-semibold tracking-wider">100% OFFLINE</span>
+      <div class="flex items-center gap-4">
+        <span class="px-4 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold tracking-wide">100% OFFLINE MODE</span>
       </div>
     </div>
   </header>
 
-  <div class="max-w-7xl mx-auto px-8 py-10">
+  <div class="max-w-7xl mx-auto px-6 py-8">
 
-    <!-- Hero -->
-    <div class="hero-bg rounded-3xl p-10 text-white mb-12">
-      <h2 class="text-5xl font-semibold heading-font mb-3">Offline Translation Tool</h2>
-      <p class="text-blue-100 text-lg">Transcribe • Translate • Generate Voice & Subtitles</p>
+    <!-- Hero Status Banner -->
+    <div class="hero-bg rounded-3xl p-8 text-white mb-8 shadow-lg shadow-blue-900/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div>
+        <h2 class="text-3xl font-bold heading-font mb-1">Local Resource Panel</h2>
+        <p class="text-blue-100 text-sm">Transcribe speech, translate locally, and generate localized audio & subtitle outputs securely.</p>
+      </div>
+      <!-- Processing Step Progress Map -->
+      <div class="flex items-center gap-2 bg-black/10 p-3 rounded-2xl w-full md:w-auto overflow-x-auto">
+        <div id="step1-badge" class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">1</div>
+        <span class="text-xs font-medium text-blue-200">Audio/Video</span>
+        <i class="fas fa-chevron-right text-[10px] text-blue-300"></i>
+        <div id="step2-badge" class="w-8 h-8 rounded-full bg-white/20 text-white/60 flex items-center justify-center text-xs font-bold">2</div>
+        <span class="text-xs font-medium text-blue-300/60">Translate</span>
+        <i class="fas fa-chevron-right text-[10px] text-blue-300"></i>
+        <div id="step3-badge" class="w-8 h-8 rounded-full bg-white/20 text-white/60 flex items-center justify-center text-xs font-bold">3</div>
+        <span class="text-xs font-medium text-blue-300/60">Export</span>
+      </div>
     </div>
 
     <div class="grid lg:grid-cols-12 gap-8">
 
-      <!-- Main Area -->
+      <!-- Main Interactive Work Space -->
       <div class="lg:col-span-8 space-y-8">
 
-        <!-- Upload + Translation -->
+        <!-- Stage 1 & Stage 2 Inputs -->
         <div class="grid md:grid-cols-2 gap-6">
+          
           <!-- Transcription Card -->
-          <div class="glass rounded-3xl p-8 shadow-xl">
+          <div class="glass-card shadow-sm border border-slate-200/60">
             <div class="flex items-center gap-4 mb-6">
-              <i class="fas fa-microphone text-4xl text-blue-600"></i>
+              <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                <i class="fas fa-microphone text-xl"></i>
+              </div>
               <div>
-                <h3 class="text-2xl font-semibold">1. Transcription</h3>
-                <p class="text-slate-500">Upload audio or video</p>
+                <h3 class="text-lg font-bold text-slate-900">1. Input Media</h3>
+                <p class="text-xs text-slate-500">Supports MP3, WAV, MP4, MOV</p>
               </div>
             </div>
-            <input type="file" id="mediaFile" accept="audio/*,video/*" 
-                   class="w-full text-sm text-slate-500 file:mr-4 file:py-4 file:px-8 file:rounded-2xl file:border-0 file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer transition-all">
+            
+            <div class="border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center hover:border-blue-400 transition cursor-pointer relative bg-slate-50/50">
+              <input type="file" id="mediaFile" accept="audio/*,video/*" onchange="handleFileSelect()"
+                     class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+              <div class="space-y-2">
+                <i class="fas fa-cloud-upload-alt text-2xl text-slate-400" id="uploadIcon"></i>
+                <div class="text-sm font-medium text-slate-700" id="uploadPrompt">Choose a file to begin</div>
+                <div id="fileName" class="text-xs text-blue-600 font-semibold truncate hidden"></div>
+              </div>
+            </div>
+
             <button onclick="transcribe()" id="transcribeBtn"
-                    class="mt-8 w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-2xl text-white font-semibold text-lg transition">
-              🚀 Start Transcription
+                    class="mt-6 w-full btn-primary flex items-center justify-center gap-2 shadow-sm">
+              <i class="fas fa-play text-sm"></i> Process & Transcribe
             </button>
-            <div id="fileName" class="mt-3 text-xs text-slate-500 text-center"></div>
           </div>
 
           <!-- Translation Card -->
-          <div class="glass rounded-3xl p-8 shadow-xl">
+          <div class="glass-card shadow-sm border border-slate-200/60">
             <div class="flex items-center gap-4 mb-6">
-              <i class="fas fa-language text-4xl text-emerald-600"></i>
+              <div class="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600">
+                <i class="fas fa-language text-xl"></i>
+              </div>
               <div>
-                <h3 class="text-2xl font-semibold">2. Translation</h3>
-                <p class="text-slate-500">Choose target language</p>
+                <h3 class="text-lg font-bold text-slate-900">2. Local Translation</h3>
+                <p class="text-xs text-slate-500">Pick native Indian language</p>
               </div>
             </div>
-            <select id="targetLang" class="w-full p-4 border border-slate-300 rounded-2xl text-lg focus:outline-none focus:border-emerald-500">
-              <option value="en">English</option>
-              <option value="hi">Hindi</option>
-              <option value="mr">Marathi</option>
-            </select>
+            
+            <div class="space-y-2">
+              <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Target Language</label>
+              <select id="targetLang" class="w-full p-3.5 border border-slate-200 rounded-16 text-base bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
+                <option value="en">English (Original Language Check)</option>
+                <option value="hi">Hindi (हिंदी)</option>
+                <option value="mr">Marathi (मराठी)</option>
+              </select>
+            </div>
+
             <button onclick="translateText()" id="translateBtn" disabled
-                    class="mt-8 w-full bg-emerald-600 hover:bg-emerald-700 py-4 rounded-2xl text-white font-semibold text-lg transition disabled:opacity-50">
-              🌐 Translate Text
+                    class="mt-11 w-full btn-secondary flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none shadow-sm">
+              <i class="fas fa-globe text-sm"></i> Run Local Translation
             </button>
           </div>
         </div>
 
-        <!-- Result -->
-        <div class="glass rounded-3xl p-8 shadow-xl min-h-[340px]">
-          <div id="resultContent" class="grid md:grid-cols-2 gap-8"></div>
+        <!-- Dynamic Output Previews (Hidden when empty) -->
+        <div id="mediaPreviews" class="glass-card shadow-sm border border-slate-200/60 hidden space-y-4">
+          <h4 class="font-bold text-sm text-slate-500 uppercase tracking-wider">Generated Media Previews</h4>
+          <div id="audioPlayer"></div>
+          <div id="videoContainer" class="hidden rounded-2xl overflow-hidden border bg-black aspect-video max-h-[380px] flex items-center justify-center">
+             <video id="previewVideo" controls class="w-full h-full object-contain"></video>
+          </div>
         </div>
 
-        <!-- Extra Outputs -->
-        <div id="audioPlayer" class="mt-4"></div>
-        <div id="srtLink" class="mt-4 text-center"></div>
-        <div id="burnedVideoLink" class="mt-4 text-center"></div>
+        <!-- Real-time Text Result Dashboard -->
+        <div class="glass-card shadow-sm border border-slate-200/60">
+          <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-slate-900">
+            <i class="fas fa-align-left text-blue-600 text-sm"></i> Context Output Console
+          </h3>
+          <div id="resultContent" class="result-box border border-slate-100 flex flex-col justify-center">
+            <!-- Filled dynamically by JavaScript -->
+          </div>
+        </div>
+
       </div>
 
-      <!-- Sidebar -->
+      <!-- Sidebar Controls & Navigation -->
       <div class="lg:col-span-4 space-y-6">
 
-        <!-- Quick Actions -->
-        <div class="glass rounded-3xl p-8 shadow-xl">
-          <h3 class="font-semibold text-lg mb-6">Quick Actions</h3>
-          <div class="grid grid-cols-2 gap-4">
+        <!-- Technical Output Actions Pack -->
+        <div class="glass-card shadow-sm border border-slate-200/60">
+          <h3 class="font-bold text-base text-slate-900 mb-4 flex items-center gap-2">
+            <i class="fas fa-cogs text-slate-500"></i> Generation Suite
+          </h3>
+          <div class="grid grid-cols-2 gap-3">
             <button onclick="generateTTS()" id="ttsBtn" disabled 
-                    class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-5 rounded-2xl flex flex-col items-center gap-2 disabled:opacity-50 transition">
-              <i class="fas fa-volume-up text-2xl"></i>
-              <span class="text-sm">Generate Voice</span>
+                    class="bg-slate-50 hover:bg-emerald-50 border border-slate-200 text-slate-700 hover:text-emerald-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 disabled:opacity-40 disabled:hover:bg-slate-50 disabled:hover:text-slate-700 transition font-semibold">
+              <i class="fas fa-volume-up text-lg text-emerald-600"></i>
+              <span class="text-xs text-center">Audio Voice</span>
             </button>
             <button onclick="generateSRT()" id="srtBtn" disabled 
-                    class="bg-amber-600 hover:bg-amber-700 text-white font-semibold py-5 rounded-2xl flex flex-col items-center gap-2 disabled:opacity-50 transition">
-              <i class="fas fa-file-alt text-2xl"></i>
-              <span class="text-sm">Generate SRT</span>
+                    class="bg-slate-50 hover:bg-amber-50 border border-slate-200 text-slate-700 hover:text-amber-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 disabled:opacity-40 disabled:hover:bg-slate-50 disabled:hover:text-slate-700 transition font-semibold">
+              <i class="fas fa-file-code text-lg text-amber-600"></i>
+              <span class="text-xs text-center">Build Subtitles</span>
             </button>
             <button onclick="burnSubtitles()" id="burnBtn" disabled 
-                    class="bg-red-600 hover:bg-red-700 text-white font-semibold py-5 rounded-2xl flex flex-col items-center gap-2 disabled:opacity-50 transition">
-              <i class="fas fa-fire text-2xl"></i>
-              <span class="text-sm">Burn Subtitles</span>
-            </button>
-            <button onclick="downloadTranslatedText()" id="downloadBtn" disabled 
-                    class="bg-violet-600 hover:bg-violet-700 text-white font-semibold py-5 rounded-2xl flex flex-col items-center gap-2 disabled:opacity-50 transition">
-              <i class="fas fa-download text-2xl"></i>
-              <span class="text-sm">Download Text</span>
+                    class="bg-slate-50 hover:bg-red-50 border border-slate-200 text-slate-700 hover:text-red-700 p-4 rounded-xl flex flex-col items-center justify-center gap-2 col-span-2 disabled:opacity-40 disabled:hover:bg-slate-50 disabled:hover:text-slate-700 transition font-semibold flex-row justify-center">
+              <i class="fas fa-video text-lg text-red-600 mr-1"></i>
+              <span class="text-xs">Burn Hard Subtitles into Video</span>
             </button>
           </div>
-          <button onclick="clearAll()" 
-                  class="mt-6 w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-3 rounded-2xl transition">
-            🗑️ Clear All
-          </button>
+          
+          <div class="mt-4 pt-4 border-t border-slate-100 flex items-center gap-2">
+            <button onclick="downloadTranslatedText()" id="downloadBtn" disabled 
+                    class="flex-1 bg-slate-900 hover:bg-slate-800 text-white text-xs py-3 rounded-xl transition font-medium text-center disabled:opacity-40">
+              <i class="fas fa-download mr-1"></i> Download Doc (.txt)
+            </button>
+            <button onclick="clearAll()" 
+                    class="bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-xs px-3 py-3 rounded-xl transition font-medium">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
         </div>
 
-        <!-- History -->
-        <div class="glass rounded-3xl p-8 shadow-xl">
-          <h3 class="font-semibold text-lg mb-5 flex items-center gap-2">
-            <i class="fas fa-history"></i> Recent Translations
+        <!-- Media Download Links Panel -->
+        <div id="downloadLinksCard" class="glass-card shadow-sm border border-slate-200/60 hidden space-y-3">
+          <h3 class="font-bold text-xs text-slate-400 uppercase tracking-wider flex items-center gap-2">
+            <i class="fas fa-cloud-download-alt"></i> Ready Output Packages
           </h3>
-          <div id="historyList" class="space-y-4 text-sm max-h-[420px] overflow-y-auto"></div>
+          <div id="srtLink"></div>
+          <div id="burnedVideoLink"></div>
         </div>
+
+        <!-- Persistent History Logs -->
+        <div class="glass-card shadow-sm border border-slate-200/60">
+          <h3 class="font-bold text-sm text-slate-900 mb-4 flex items-center gap-2">
+            <i class="fas fa-history text-slate-400"></i> Local Activity Logs
+          </h3>
+          <div id="historyList" class="space-y-3 text-xs max-h-[300px] overflow-y-auto pr-1">
+            <!-- Dynamic History -->
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
 
-  <!-- Status Bar -->
-  <div id="status" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white shadow-2xl rounded-3xl px-8 py-3 text-sm font-medium hidden"></div>
+  <!-- Realtime Floating Processing Status Loader -->
+  <div id="status" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-950 text-white shadow-2xl rounded-2xl px-6 py-4 text-xs font-semibold hidden tracking-wide flex items-center gap-3 border border-slate-800 z-50 min-w-[320px]">
+    <!-- Handled explicitly through app.js statuses -->
+  </div>
 
   <script src="/static/js/app.js"></script>
 </body>
