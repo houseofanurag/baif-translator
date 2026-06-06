@@ -194,6 +194,10 @@ function clearAll() {
   document.getElementById('burnedVideoLink').innerHTML = "";
   document.getElementById('downloadLinksCard').classList.add('hidden');
   
+  // Clean subtitle workspace dashboard elements
+  document.getElementById('srtEditorCard').classList.add('hidden');
+  document.getElementById('srtTimelineContainer').innerHTML = "";
+
   // Reset wizards
   document.getElementById('step1-badge').className = "w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold";
   document.getElementById('step1-badge').innerHTML = "1";
@@ -247,16 +251,32 @@ async function translateText() {
   const formData = new FormData();
   formData.append("text", currentText);
   formData.append("target_lang", targetLang);
+  
+  // Send original timeline structure chunks over
+  formData.append("segments", JSON.stringify(currentSegments));
 
   try {
     const res = await fetch("/translate", { method: "POST", body: formData });
     const data = await res.json();
     if (data.status === "success") {
       currentTranslatedText = data.translated;
+      
+      if (data.translated_segments && data.translated_segments.length > 0) {
+         currentSegments = data.translated_segments;
+      } else {
+         const textSentences = currentTranslatedText.split(/(?<=[।.!?])\s+/);
+         currentSegments.forEach((seg, i) => {
+           if (textSentences[i]) seg.text = textSentences[i];
+         });
+      }
+      
       showStatus(`✅ Translation complete to [${targetLang.toUpperCase()}]`, "success");
       renderResult();
       updateButtonStates();
       saveToHistory();
+
+      // UI ENGINE SYNC FORCE: Overwrite editor cards immediately
+      renderSrtEditorUI();
     }
   } catch (e) {
     showStatus("❌ Translation framework compute encountered an error.", "error");
@@ -292,13 +312,70 @@ async function generateTTS() {
   }
 }
 
+function formatTimestampDisplay(secs) {
+  const mins = Math.floor(secs / 60);
+  const remainingSecs = (secs % 60).toFixed(2);
+  return `${String(mins).padStart(2, '0')}:${String(remainingSecs).padStart(5, '0')}`;
+}
+
+function renderSrtEditorUI() {
+  const container = document.getElementById('srtTimelineContainer');
+  if (!container) return;
+  
+  if (currentSegments.length === 0) {
+    document.getElementById('srtEditorCard').classList.add('hidden');
+    return;
+  }
+  
+  let html = "";
+  currentSegments.forEach((seg, index) => {
+    html += `
+      <div class="flex items-start gap-3 bg-white p-3 rounded-xl border border-slate-200/70 shadow-2xs hover:border-amber-300 transition">
+        <div class="flex flex-col text-[10px] font-mono font-bold text-slate-400 bg-slate-50 px-2 py-1.5 rounded-lg border text-center min-w-[85px] mt-1">
+          <span class="text-amber-600">⏱️ ${formatTimestampDisplay(seg.start)}</span>
+          <span class="text-slate-400 border-t border-slate-200/60 mt-0.5 pt-0.5">${formatTimestampDisplay(seg.end)}</span>
+        </div>
+        <div class="flex-1">
+          <textarea id="srt-input-${index}" rows="2" class="w-full p-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-600 text-slate-700 font-medium bg-slate-50/30 focus:bg-white resize-none transition" placeholder="Segment audio content text...">${seg.text || ""}</textarea>
+        </div>
+      </div>
+    `;
+  });
+  
+  container.innerHTML = html;
+  document.getElementById('srtEditorCard').classList.remove('hidden');
+}
+
+async function saveSrtEdits() {
+  // Sync modified elements from layout inputs back into client state engine memory blocks
+  currentSegments.forEach((seg, index) => {
+    const inputEl = document.getElementById(`srt-input-${index}`);
+    if (inputEl) {
+      seg.text = inputEl.value;
+    }
+  });
+  
+  showStatus("Applying changes locally... Regenerating layout maps...", "info");
+  
+  // Re-trigger generation flow directly to synchronize downstream assets cleanly
+  await executeSrtGenerationBackend(true);
+}
+
 async function generateSRT() {
   if (currentSegments.length === 0) return alert("No active timeline matrices found. Transcribe your target video first.");
+  await executeSrtGenerationBackend(false);
+}
 
-  showStatus("Calculating target language timestamps and packing subtitle data structure...", "info");
+async function executeSrtGenerationBackend(isSilentUpdate = false) {
+  if (currentSegments.length === 0) return;
+
+  if(!isSilentUpdate) {
+    showStatus("Calculating target language timestamps and packing subtitle data structure...", "info");
+  }
 
   const targetLang = document.getElementById('targetLang').value;
   const formData = new FormData();
+  
   formData.append("segments", JSON.stringify(currentSegments));
   formData.append("filename", currentFileName || "baif_recording");
   formData.append("target_lang", targetLang);
@@ -316,6 +393,8 @@ async function generateSRT() {
           <span><i class="fas fa-file-subtitles mr-1.5"></i> Download Subtitle File (.srt)</span>
           <i class="fas fa-download text-amber-600"></i>
         </a>`;
+      
+      renderSrtEditorUI();
       updateButtonStates();
     }
   } catch (e) {
@@ -324,6 +403,17 @@ async function generateSRT() {
 }
 
 async function burnSubtitles() {
+  // CRITICAL FLOW SAFETY ASSURE: Force an update check onto memory input structures before burning to disk
+  currentSegments.forEach((seg, index) => {
+    const inputEl = document.getElementById(`srt-input-${index}`);
+    if (inputEl) seg.text = inputEl.value;
+  });
+
+  showStatus("Syncing final changes and updating internal tracking schemas...", "info");
+  
+  // Force compile a fresh matching .srt track file from your newly updated timeline modifications
+  await executeSrtGenerationBackend(true);
+
   if (!hasSrtFile()) return alert("Please build standard subtitle assets before firing burning routines.");
 
   showStatus("Processing high-intensity FFmpeg multi-pass overlay. Do not close app...", "info");
@@ -379,7 +469,6 @@ async function startRecording() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     
-    // Auto-detect container structures based on browser engine specifications
     const options = MediaRecorder.isTypeSupported('audio/webm') ? { mimeType: 'audio/webm' } : { mimeType: 'audio/mp4' };
     mediaRecorder = new MediaRecorder(stream, options);
     
@@ -392,14 +481,10 @@ async function startRecording() {
       const audioBlob = new Blob(audioChunks, { type: options.mimeType });
       const audioFile = new File([audioBlob], `live_capture_${Date.now()}.${extension}`, { type: options.mimeType });
       
-      // Release hardware audio track bindings cleanly
       stream.getTracks().forEach(track => track.stop());
-      
-      // Relay audio payload straight into processing pipeline
       await uploadLiveRecording(audioFile);
     };
 
-    // UI Configuration Mapping
     document.getElementById('startRecordBtn').disabled = true;
     document.getElementById('startRecordBtn').classList.add('opacity-40', 'cursor-not-allowed');
     
@@ -407,7 +492,6 @@ async function startRecording() {
     stopBtn.disabled = false;
     stopBtn.className = "flex-1 bg-rose-600 text-white text-xs px-4 py-3.5 rounded-xl font-semibold hover:bg-rose-700 transition flex items-center justify-center gap-2 shadow-sm";
 
-    // Launch running elapsed clock matrix
     startTime = Date.now();
     const timerEl = document.getElementById('recordingTimer');
     timerEl.classList.remove('hidden', 'text-slate-400');
