@@ -261,16 +261,11 @@ async function generateTTS() {
   if (!currentTranslatedText) return alert("Please process translation before building speech synthesis.");
   const targetLang = document.getElementById('targetLang').value;
 
-  if (targetLang !== "en") {
-    showStatus("🔊 Voice generation is currently supported natively for English text values. Hindi & Marathi expansions require optional local model weights.", "error");
-    return;
-  }
-
   showStatus("Executing hardware-accelerated speech synthesis command pipelines...", "info");
 
   const formData = new FormData();
   formData.append("text", currentTranslatedText);
-  formData.append("lang", "en");
+  formData.append("lang", targetLang);
 
   try {
     const res = await fetch("/tts", { method: "POST", body: formData });
@@ -278,9 +273,13 @@ async function generateTTS() {
     if (data.status === "success" && data.audio_url) {
       showStatus("✅ Localized Audio Clip Created!", "success");
       document.getElementById('mediaPreviews').classList.remove('hidden');
+      
+      const readableLang = targetLang === "en" ? "English" : targetLang === "hi" ? "Hindi" : "Marathi";
       document.getElementById('audioPlayer').innerHTML = `
-        <label class="text-[10px] font-bold text-emerald-600 block mb-1 uppercase tracking-wider">Synthesized English Voice Output</label>
+        <label class="text-[10px] font-bold text-emerald-600 block mb-1 uppercase tracking-wider">Synthesized ${readableLang} Voice Output</label>
         <audio controls class="w-full rounded-lg bg-slate-50 border p-1"><source src="${data.audio_url}" type="audio/mp3"></audio>`;
+    } else {
+      showStatus(`❌ Engine feedback details: ${data.message}`, "error");
     }
   } catch (e) {
     showStatus("❌ Local speech engine pipeline processing dropped.", "error");
@@ -292,7 +291,6 @@ async function generateSRT() {
 
   showStatus("Calculating target language timestamps and packing subtitle data structure...", "info");
 
-  // CRITICAL IMPROVEMENT: Pass target language to translate subtitle blocks sequentially before compiling file
   const targetLang = document.getElementById('targetLang').value;
   const formData = new FormData();
   formData.append("segments", JSON.stringify(currentSegments));
@@ -344,7 +342,6 @@ async function burnSubtitles() {
           <i class="fas fa-download text-red-600"></i>
         </a>`;
       
-      // Update preview window automatically to point to the burned tracking output
       const previewVideo = document.getElementById('previewVideo');
       previewVideo.src = data.video_url;
     } else {

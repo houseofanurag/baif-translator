@@ -86,7 +86,6 @@ async def translate(text: str = Form(...), target_lang: str = Form("hi")):
         result = pipe(text[:Config.MAX_TEXT_LENGTH])[0]['translation_text']
         return {"status": "success", "original": text, "translated": result, "target_lang": target_lang}
     except Exception:
-        # Graceful handling for local testing or unexpected symbols
         return JSONResponse({
             "status": "success",
             "original": text,
@@ -98,14 +97,36 @@ async def translate(text: str = Form(...), target_lang: str = Form("hi")):
 async def text_to_speech(text: str = Form(...), lang: str = Form("en")):
     try:
         output_path = OUTPUT_DIR / f"tts_{uuid.uuid4().hex[:8]}.mp3"
-        if lang == "en":
-            subprocess.run(["say", "-v", "Samantha", "-o", str(output_path.with_suffix(".aiff")), text[:500]], check=True)
-            subprocess.run(["ffmpeg", "-i", str(output_path.with_suffix(".aiff")), "-y", str(output_path)], 
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            os.remove(output_path.with_suffix(".aiff"))
-            return {"status": "success", "audio_url": f"/outputs/{output_path.name}"}
-        else:
-            return {"status": "success", "message": "Hindi & Marathi voices coming soon"}
+        aiff_path = output_path.with_suffix(".aiff")
+        
+        # Mapping selected language code directly to native downloaded macOS assets
+        voice_map = {
+            "en": "Samantha",
+            "hi": "Lekha",
+            "mr": "Ananya"
+        }
+        
+        selected_voice = voice_map.get(lang, "Samantha")
+        
+        # Execute hardware-accelerated local vocal matrix capture
+        subprocess.run(
+            ["say", "-v", selected_voice, "-o", str(aiff_path), text[:Config.MAX_TEXT_LENGTH]], 
+            check=True
+        )
+        
+        # Convert generated raw AIFF data payload to universally viewable streaming MP3 containers
+        subprocess.run(
+            ["ffmpeg", "-i", str(aiff_path), "-y", str(output_path)], 
+            stdout=subprocess.DEVNULL, 
+            stderr=subprocess.DEVNULL,
+            check=True
+        )
+        
+        # Clean up temporary structural audio assets immediately
+        if aiff_path.exists():
+            os.remove(aiff_path)
+            
+        return {"status": "success", "audio_url": f"/outputs/{output_path.name}"}
     except Exception as e:
         return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
 
@@ -119,12 +140,11 @@ def create_srt(segments, output_path, target_lang="en"):
             end = float(segment.get("end", start + 1))
             text = segment.get("text", "").strip()
             
-            # Translate the individual block segment string if target language is shifted
             if pipe and text:
                 try:
                     text = pipe(text)[0]['translation_text']
                 except:
-                    pass # Fallback to base text if parsing hiccups occur
+                    pass
             
             def format_time(seconds):
                 hours = int(seconds // 3600)
@@ -165,7 +185,6 @@ async def burn_subtitles(original_video: UploadFile = File(...), srt_filename: s
         
         output_path = OUTPUT_DIR / f"burned_{uuid.uuid4().hex[:8]}.mp4"
         
-        # Cross-platform secure escaping for FFmpeg video filter pathways
         escaped_srt_path = str(srt_path.absolute()).replace("\\", "/").replace(":", "\\:").replace("'", "'\\\\''")
         vf_filter = f"subtitles='{escaped_srt_path}'"
         
