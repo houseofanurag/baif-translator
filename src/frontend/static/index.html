@@ -167,21 +167,43 @@
             </button>
           </div>
           
-          <div id="srtTimelineContainer" class="space-y-2 max-h-[340px] overflow-y-auto pr-1">
-            </div>
+          <div id="srtTimelineContainer" class="space-y-2 max-h-[340px] overflow-y-auto pr-1"></div>
         </div>
 
         <div class="glass-card shadow-sm border border-slate-200/60">
           <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-slate-900">
             <i class="fas fa-align-left text-blue-600 text-sm"></i> Context Output Console
           </h3>
-          <div id="resultContent" class="result-box border border-slate-100 flex flex-col justify-center">
-            </div>
+          <div id="resultContent" class="result-box border border-slate-100 flex flex-col justify-center"></div>
         </div>
 
       </div>
 
       <div class="lg:col-span-4 space-y-6">
+
+        <div class="glass-card shadow-sm border border-slate-200/60 bg-white">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+              <i class="fas fa-hdd text-slate-500"></i> Local Drive Diagnostics
+            </h3>
+            <span id="storage-count-badge" class="text-[10px] bg-slate-100 font-bold px-2 py-0.5 rounded-md text-slate-600">0 files</span>
+          </div>
+          <p class="text-[11px] text-slate-500 leading-normal mb-3">
+            Tracks physical storage usage of audio assets, translated clips, and hard-rendered video subtitles compiled on this device.
+          </p>
+          <div class="space-y-2 bg-slate-50 border border-slate-100 p-3 rounded-xl mb-4">
+            <div class="flex justify-between text-xs font-semibold">
+              <span class="text-slate-500">Cached Assets Tracked:</span>
+              <span id="storage-size-display" class="text-blue-700 font-mono">0.00 MB</span>
+            </div>
+            <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+              <div id="storage-progress-bar" class="bg-blue-600 h-1.5 transition-all duration-500" style="width: 0%"></div>
+            </div>
+          </div>
+          <button onclick="purgeLocalCache()" class="w-full bg-slate-50 hover:bg-rose-50 border border-slate-200 text-slate-600 hover:text-rose-600 transition text-xs font-bold py-2.5 rounded-xl flex items-center justify-center gap-2">
+            <i class="fas fa-broom text-[11px]"></i> Wipe Cached Output Folder
+          </button>
+        </div>
 
         <div class="glass-card shadow-sm border border-slate-200/60">
           <h3 class="font-bold text-base text-slate-900 mb-4 flex items-center gap-2">
@@ -229,16 +251,14 @@
           <h3 class="font-bold text-sm text-slate-900 mb-4 flex items-center gap-2">
             <i class="fas fa-history text-slate-400"></i> Local Activity Logs
           </h3>
-          <div id="historyList" class="space-y-3 text-xs max-h-[300px] overflow-y-auto pr-1">
-            </div>
+          <div id="historyList" class="space-y-3 text-xs max-h-[300px] overflow-y-auto pr-1"></div>
         </div>
 
       </div>
     </div>
   </div>
 
-  <div id="status" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-950 text-white shadow-2xl rounded-2xl px-6 py-4 text-xs font-semibold hidden tracking-wide flex items-center gap-3 border border-slate-800 z-50 min-w-[320px]">
-    </div>
+  <div id="status" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-950 text-white shadow-2xl rounded-2xl px-6 py-4 text-xs font-semibold hidden tracking-wide flex items-center gap-3 border border-slate-800 z-50 min-w-[320px]"></div>
 
   <script src="/static/js/app.js"></script>
 </body>

@@ -38,6 +38,54 @@ def get_translation_engine(target_lang: str):
         translators[target_lang] = pipeline("translation", model=model_name, device=-1)
     return translators[target_lang]
 
+
+# ========================================================
+# NEW STORAGE TRACKING MONITOR UTILITY ENDPOINTS
+# ========================================================
+
+@app.get("/system/storage")
+async def get_storage_status():
+    """Calculates cumulative byte sizes of locally cached output videos and audios"""
+    try:
+        total_size_bytes = 0
+        file_count = 0
+        
+        if OUTPUT_DIR.exists():
+            for item in OUTPUT_DIR.iterdir():
+                if item.is_file() and not item.is_symlink():
+                    total_size_bytes += item.stat().st_size
+                    file_count += 1
+                    
+        total_size_mb = round(total_size_bytes / (1024 * 1024), 2)
+        return {
+            "status": "success",
+            "file_count": file_count,
+            "size_mb": total_size_mb,
+            "directory_path": str(OUTPUT_DIR.absolute())
+        }
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": str(e)}, status_code=500)
+
+@app.delete("/system/storage")
+async def clear_storage_cache():
+    """Safely wipes all files out of the output cache folder to save laptop storage space"""
+    try:
+        if OUTPUT_DIR.exists():
+            for item in OUTPUT_DIR.iterdir():
+                if item.is_file() or item.is_symlink():
+                    item.unlink()
+                elif item.is_dir():
+                    shutil.rmtree(item)
+                    
+        return {"status": "success", "message": "Outputs cache folder cleared successfully."}
+    except Exception as e:
+        return JSONResponse({"status": "error", "message": f"Purge failed: {str(e)}"}, status_code=500)
+
+
+# ========================================================
+# OPERATIONAL TRANSLATION & SUBTITLE CORES
+# ========================================================
+
 @app.get("/", response_class=HTMLResponse)
 async def root():
     with open("src/frontend/static/index.html", "r", encoding="utf-8") as f:
@@ -99,7 +147,6 @@ async def text_to_speech(text: str = Form(...), lang: str = Form("en")):
         output_path = OUTPUT_DIR / f"tts_{uuid.uuid4().hex[:8]}.mp3"
         aiff_path = output_path.with_suffix(".aiff")
         
-        # Mapping selected language code directly to native downloaded macOS assets
         voice_map = {
             "en": "Samantha",
             "hi": "Lekha",
@@ -108,13 +155,11 @@ async def text_to_speech(text: str = Form(...), lang: str = Form("en")):
         
         selected_voice = voice_map.get(lang, "Samantha")
         
-        # Execute hardware-accelerated local vocal matrix capture
         subprocess.run(
             ["say", "-v", selected_voice, "-o", str(aiff_path), text[:Config.MAX_TEXT_LENGTH]], 
             check=True
         )
         
-        # Convert generated raw AIFF data payload to universally viewable streaming MP3 containers
         subprocess.run(
             ["ffmpeg", "-i", str(aiff_path), "-y", str(output_path)], 
             stdout=subprocess.DEVNULL, 
@@ -122,7 +167,6 @@ async def text_to_speech(text: str = Form(...), lang: str = Form("en")):
             check=True
         )
         
-        # Clean up temporary structural audio assets immediately
         if aiff_path.exists():
             os.remove(aiff_path)
             

@@ -30,14 +30,18 @@ function updateButtonStates() {
   const badge3 = document.getElementById('step3-badge');
 
   if (hasTranscription) {
-    badge1.className = "w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold";
-    badge1.innerHTML = "✓";
-    badge2.className = "w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold";
+    if(badge1) {
+      badge1.className = "w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold";
+      badge1.innerHTML = "✓";
+    }
+    if(badge2) badge2.className = "w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold";
   }
   if (hasTranslation) {
-    badge2.className = "w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold";
-    badge2.innerHTML = "✓";
-    badge3.className = "w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold";
+    if(badge2) {
+      badge2.className = "w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-bold";
+      badge2.innerHTML = "✓";
+    }
+    if(badge3) badge3.className = "w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold";
   }
 }
 
@@ -58,12 +62,11 @@ function handleFileSelect() {
     uploadPrompt.textContent = "Media Selected Ready";
     uploadIcon.className = "fas fa-check-circle text-2xl text-emerald-500";
     
-    // Auto-setup simple video layout preview container if it's an MP4/MOV format
     const isVideo = fileInput.files[0].type.startsWith('video/') || currentFileName.endsWith('.mp4') || currentFileName.endsWith('.mov');
     if (isVideo) {
       const url = URL.createObjectURL(fileInput.files[0]);
       const previewVideo = document.getElementById('previewVideo');
-      previewVideo.src = url;
+      if(previewVideo) previewVideo.src = url;
       document.getElementById('videoContainer').classList.remove('hidden');
       document.getElementById('mediaPreviews').classList.remove('hidden');
     }
@@ -132,6 +135,55 @@ function showStatus(message, statusType = "info") {
   }
 }
 
+// ========================================================
+// NEW TRACKING ENGINE: STORAGE TELEMETRY & CACHE MANAGER
+// ========================================================
+
+async function updateStorageTelemetry() {
+  try {
+    const res = await fetch("/system/storage");
+    const data = await res.json();
+    if (data.status === "success") {
+      const countBadge = document.getElementById('storage-count-badge');
+      const sizeDisplay = document.getElementById('storage-size-display');
+      const progressBar = document.getElementById('storage-progress-bar');
+      
+      if(countBadge) countBadge.textContent = `${data.file_count} files`;
+      if(sizeDisplay) sizeDisplay.textContent = `${data.size_mb} MB`;
+      
+      if(progressBar) {
+        const safetyCeiling = 500; // Trigger visualization warning line at 500MB scale metric
+        const fillPercentage = Math.min((data.size_mb / safetyCeiling) * 100, 100);
+        progressBar.style.width = `${fillPercentage}%`;
+      }
+    }
+  } catch (err) {
+    console.error("Storage monitor dropped sync connection tracking:", err);
+  }
+}
+
+async function purgeLocalCache() {
+  if (!confirm("Are you sure you want to permanently clear your local outputs folder? This removes all previously compiled video hardrenders, localized speech audios, and saved SRT files.")) return;
+  
+  try {
+    const res = await fetch("/system/storage", { method: "DELETE" });
+    const data = await res.json();
+    if (data.status === "success") {
+      showStatus("🧹 Local cache assets folder cleared out safely!", "success");
+      
+      document.getElementById('srtLink').innerHTML = "";
+      document.getElementById('burnedVideoLink').innerHTML = "";
+      const dlCard = document.getElementById('downloadLinksCard');
+      if(dlCard) dlCard.classList.add('hidden');
+      
+      // Force update analytics readout metrics immediately
+      await updateStorageTelemetry();
+    }
+  } catch (err) {
+    showStatus("❌ Failed execution cleaning standard system storage tracks.", "error");
+  }
+}
+
 // ==================== Local History Trackers ====================
 function saveToHistory() {
   if (!currentTranslatedText) return;
@@ -168,7 +220,6 @@ function renderHistory() {
   `).join('');
 }
 
-// ==================== Clear All View States ====================
 function clearAll() {
   if (!confirm("Flush all runtime localized text fields and cached instances?")) return;
 
@@ -194,15 +245,8 @@ function clearAll() {
   document.getElementById('burnedVideoLink').innerHTML = "";
   document.getElementById('downloadLinksCard').classList.add('hidden');
   
-  // Clean subtitle workspace dashboard elements
   document.getElementById('srtEditorCard').classList.add('hidden');
   document.getElementById('srtTimelineContainer').innerHTML = "";
-
-  // Reset wizards
-  document.getElementById('step1-badge').className = "w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold";
-  document.getElementById('step1-badge').innerHTML = "1";
-  document.getElementById('step2-badge').className = "w-8 h-8 rounded-full bg-white/20 text-white/60 flex items-center justify-center text-xs font-bold";
-  document.getElementById('step3-badge').className = "w-8 h-8 rounded-full bg-white/20 text-white/60 flex items-center justify-center text-xs font-bold";
 
   updateButtonStates();
 }
@@ -235,6 +279,9 @@ async function transcribe() {
       showStatus("✅ MLX Core Transcription Finished", "success");
       renderResult();
       updateButtonStates();
+      
+      // Sync telemetry reads on completion
+      await updateStorageTelemetry();
     } else {
       showStatus(`❌ Error: ${data.message}`, "error");
     }
@@ -251,9 +298,6 @@ async function translateText() {
   const formData = new FormData();
   formData.append("text", currentText);
   formData.append("target_lang", targetLang);
-  
-  // Send original timeline structure chunks over
-  formData.append("segments", JSON.stringify(currentSegments));
 
   try {
     const res = await fetch("/translate", { method: "POST", body: formData });
@@ -261,21 +305,15 @@ async function translateText() {
     if (data.status === "success") {
       currentTranslatedText = data.translated;
       
-      if (data.translated_segments && data.translated_segments.length > 0) {
-         currentSegments = data.translated_segments;
-      } else {
-         const textSentences = currentTranslatedText.split(/(?<=[।.!?])\s+/);
-         currentSegments.forEach((seg, i) => {
-           if (textSentences[i]) seg.text = textSentences[i];
-         });
-      }
+      const textSentences = currentTranslatedText.split(/(?<=[।.!?])\s+/);
+      currentSegments.forEach((seg, i) => {
+        if (textSentences[i]) seg.text = textSentences[i];
+      });
       
       showStatus(`✅ Translation complete to [${targetLang.toUpperCase()}]`, "success");
       renderResult();
       updateButtonStates();
       saveToHistory();
-
-      // UI ENGINE SYNC FORCE: Overwrite editor cards immediately
       renderSrtEditorUI();
     }
   } catch (e) {
@@ -304,6 +342,8 @@ async function generateTTS() {
       document.getElementById('audioPlayer').innerHTML = `
         <label class="text-[10px] font-bold text-emerald-600 block mb-1 uppercase tracking-wider">Synthesized ${readableLang} Voice Output</label>
         <audio controls class="w-full rounded-lg bg-slate-50 border p-1"><source src="${data.audio_url}" type="audio/mp3"></audio>`;
+        
+      await updateStorageTelemetry();
     } else {
       showStatus(`❌ Engine feedback details: ${data.message}`, "error");
     }
@@ -347,17 +387,12 @@ function renderSrtEditorUI() {
 }
 
 async function saveSrtEdits() {
-  // Sync modified elements from layout inputs back into client state engine memory blocks
   currentSegments.forEach((seg, index) => {
     const inputEl = document.getElementById(`srt-input-${index}`);
-    if (inputEl) {
-      seg.text = inputEl.value;
-    }
+    if (inputEl) seg.text = inputEl.value;
   });
   
   showStatus("Applying changes locally... Regenerating layout maps...", "info");
-  
-  // Re-trigger generation flow directly to synchronize downstream assets cleanly
   await executeSrtGenerationBackend(true);
 }
 
@@ -396,6 +431,9 @@ async function executeSrtGenerationBackend(isSilentUpdate = false) {
       
       renderSrtEditorUI();
       updateButtonStates();
+      
+      // Update data indicators to track the new .srt file size
+      await updateStorageTelemetry();
     }
   } catch (e) {
     showStatus("❌ Subtitle generation stack encountered a matrix layout error.", "error");
@@ -403,15 +441,13 @@ async function executeSrtGenerationBackend(isSilentUpdate = false) {
 }
 
 async function burnSubtitles() {
-  // CRITICAL FLOW SAFETY ASSURE: Force an update check onto memory input structures before burning to disk
+  // Sync changes instantly from DOM textarea rows before calculating FFmpeg targets
   currentSegments.forEach((seg, index) => {
     const inputEl = document.getElementById(`srt-input-${index}`);
     if (inputEl) seg.text = inputEl.value;
   });
 
-  showStatus("Syncing final changes and updating internal tracking schemas...", "info");
-  
-  // Force compile a fresh matching .srt track file from your newly updated timeline modifications
+  showStatus("Syncing final layout layers and compiling temporary operational tracks...", "info");
   await executeSrtGenerationBackend(true);
 
   if (!hasSrtFile()) return alert("Please build standard subtitle assets before firing burning routines.");
@@ -439,7 +475,10 @@ async function burnSubtitles() {
         </a>`;
       
       const previewVideo = document.getElementById('previewVideo');
-      previewVideo.src = data.video_url;
+      if(previewVideo) previewVideo.src = data.video_url;
+      
+      // Update usage readout after generating the output video file
+      await updateStorageTelemetry();
     } else {
       showStatus(`❌ Engine feedback details: ${data.message}`, "error");
     }
@@ -468,7 +507,6 @@ async function startRecording() {
   audioChunks = [];
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    
     const options = MediaRecorder.isTypeSupported('audio/webm') ? { mimeType: 'audio/webm' } : { mimeType: 'audio/mp4' };
     mediaRecorder = new MediaRecorder(stream, options);
     
@@ -494,14 +532,16 @@ async function startRecording() {
 
     startTime = Date.now();
     const timerEl = document.getElementById('recordingTimer');
-    timerEl.classList.remove('hidden', 'text-slate-400');
-    timerEl.classList.add('text-rose-600', 'animate-pulse');
+    if(timerEl) {
+      timerEl.classList.remove('hidden', 'text-slate-400');
+      timerEl.classList.add('text-rose-600', 'animate-pulse');
+    }
     
     recordInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
       const secs = String(elapsed % 60).padStart(2, '0');
-      timerEl.textContent = `${mins}:${secs}`;
+      if(timerEl) timerEl.textContent = `${mins}:${secs}`;
     }, 1000);
 
     mediaRecorder.start();
@@ -519,7 +559,7 @@ function stopRecording() {
     
     clearInterval(recordInterval);
     const timerEl = document.getElementById('recordingTimer');
-    timerEl.classList.add('hidden');
+    if(timerEl) timerEl.classList.add('hidden');
     
     document.getElementById('startRecordBtn').disabled = false;
     document.getElementById('startRecordBtn').classList.remove('opacity-40', 'cursor-not-allowed');
@@ -553,6 +593,8 @@ async function uploadLiveRecording(file) {
       showStatus("✅ Live clip safely transcribed inside system core memory structures", "success");
       renderResult();
       updateButtonStates();
+      
+      await updateStorageTelemetry();
     } else {
       showStatus(`❌ Error processing live stream: ${data.message}`, "error");
     }
@@ -565,4 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateButtonStates();
   renderResult();
   renderHistory();
+  
+  // Initialize storage readout statistics immediately on application bootstrap
+  updateStorageTelemetry();
 });
