@@ -12,11 +12,17 @@ fi
 
 # Activate virtual environment
 source venv/bin/activate
-
 echo "✅ Virtual environment activated"
-echo "🌐 Starting server at http://127.0.0.1:8000"
-echo "Press Ctrl+C to stop"
+
+# Find local IP address to make it easy for field teams to connect tablets
+LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "127.0.0.1")
+
+echo "--------------------------------------------------------"
+echo "🌐 Local Laptop Access: http://localhost:8000"
+echo "📱 Field Tablet Hotspot Access: http://$LOCAL_IP:8000"
+echo "--------------------------------------------------------"
+echo "Press Ctrl+C to stop the server safely"
 echo ""
 
-# Start FastAPI server with auto-reload (good for development)
-uvicorn src.backend.main:app --reload --host 127.0.0.1 --port 8000
+# Start FastAPI server assigned to broad 0.0.0.0 network interfaces
+uvicorn src.backend.main:app --host 0.0.0.0 --port 8000

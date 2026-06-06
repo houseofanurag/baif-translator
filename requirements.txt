@@ -1,9 +1,12 @@
-fastapi
-uvicorn[standard]
-python-multipart
+fastapi==0.110.0
+uvicorn[standard]==0.28.0
+python-multipart==0.0.9
 mlx-whisper
-transformers
+transformers==4.38.2
+sacremoses          # Required for Helsinki-NLP OPUS-MT translation tokenizers
+sentencepiece       # Required for localized linguistic model translation processing
 torch
 torchaudio
 numpy
 pillow
+watchfiles          # Keeps local development hot-reloads snappy
