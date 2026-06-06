@@ -1,47 +1,74 @@
 # BAIF Offline Translator
 
-A fully **offline** translation application for BAIF that supports **Text, Audio, and Video** inputs with transcription, translation, voice output, SRT subtitles, and **burned-in subtitles**.
+A fully **offline** translation application built for BAIF field teams. It supports **audio and video** inputs, transcribes speech, translates between Indian languages, and generates multiple outputs — all without internet.
 
 ---
 
 ## 🎯 Objective
 
-To provide a complete offline solution for transcribing, translating, and generating outputs between **English, Hindi, and Marathi** languages — especially useful in rural/field areas.
+Provide a reliable, secure, and easy-to-use offline tool for BAIF teams working in rural areas to:
+- Transcribe local language recordings
+- Translate between English, Hindi, and Marathi
+- Generate voice output and subtitles
 
 ---
 
 ## ✨ Features
 
-- Audio & Video file upload (MP4, MOV, AVI, WebM, MP3, WAV, etc.)
-- Speech-to-Text Transcription
-- Translation (English ↔ Hindi ↔ Marathi)
-- Text-to-Speech (Voice Output)
-- SRT Subtitle Generation
-- **Burned-in Subtitles** (Hardcoded text into video)
-- Fully offline & open-source
-- Optimized for Apple Silicon (M1/M2)
+- ✅ Audio & Video Upload (MP4, MOV, MP3, WAV, M4A, etc.)
+- ✅ Speech-to-Text Transcription (MLX Whisper)
+- ✅ Translation: English ↔ Hindi ↔ Marathi
+- ✅ Text-to-Speech (Voice Generation) – Full English support
+- ✅ SRT Subtitle Generation
+- ✅ Burn Subtitles into Video
+- ✅ Download Translated Text
+- ✅ Recent Translations History
+- ✅ Modern Responsive UI
+- ✅ 100% Offline & Open Source
 
 ---
 
-## 🛠️ Tech Stack & Models
+## 🏗️ Project Architecture
+baif-translator/
+├── src/
+│   ├── backend/
+│   │   └── main.py                 # FastAPI Server + All Endpoints
+│   └── frontend/
+│       └── static/
+│           ├── index.html          # Modern Dashboard UI
+│           └── js/
+│               └── app.js          # Frontend Logic
+├── uploads/                        # Temporary uploaded media
+├── outputs/                        # SRT, Audio, Burned Videos
+├── run.sh                          # Start the app
+├── setup.sh                        # Initial setup script
+├── requirements.txt
+├── config.py
+├── push-all.sh                     # Push to both GitHub repos
+└── README.md
 
-| Component            | Technology / Model                          | Purpose |
-|----------------------|---------------------------------------------|-------|
-| **Backend**          | FastAPI (Python)                            | Main server & API |
-| **Transcription**    | MLX Whisper (`whisper-base-mlx`)            | Speech-to-Text (Apple Silicon optimized) |
-| **Translation**      | Helsinki-NLP OPUS-MT models                 | Text translation |
-| **Text-to-Speech**   | macOS `say` (English)                       | Voice output |
-| **SRT Generation**   | Custom logic with timestamps                | Subtitle files |
-| **Burned-in Subtitles** | FFmpeg + libass                          | Hardcoded subtitles in video |
-| **Frontend**         | HTML + Tailwind CSS + JavaScript            | Modern responsive UI |
-| **Media Processing** | FFmpeg-full                                 | Required for burned subtitles |
+
+
+---
+
+## 🛠️ Tech Stack
+
+| Component            | Technology                              | Purpose |
+|----------------------|-----------------------------------------|--------|
+| Backend              | FastAPI (Python)                        | API Server |
+| Transcription        | MLX Whisper (`whisper-base`)            | Speech-to-Text (Apple Silicon Optimized) |
+| Translation          | Helsinki-NLP OPUS-MT models             | Text Translation |
+| Text-to-Speech       | macOS `say` command                     | Voice Output (English) |
+| Media Processing     | FFmpeg                                  | Audio/Video handling & Subtitle burning |
+| Frontend             | HTML + Tailwind CSS + Vanilla JS        | User Interface |
+| Local Storage        | Browser localStorage                    | History |
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Setup (First Time Only)
-
+### 1. Setup (First Time)
 ```bash
-cd baif-translator
 ./setup.sh
+
+./run.sh
