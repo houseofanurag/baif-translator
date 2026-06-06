@@ -1,74 +1,105 @@
 # BAIF Offline Translator
 
-A fully **offline** translation application built for BAIF field teams. It supports **audio and video** inputs, transcribes speech, translates between Indian languages, and generates multiple outputs — all without internet.
+A fully **offline**, hardware-accelerated translation and subtitling suite built explicitly for BAIF field teams. It processes **audio and video** inputs, transcribes speech locally, translates between Indian languages, and generates multiple multimedia outputs—all without an internet connection.
 
 ---
 
 ## 🎯 Objective
 
-Provide a reliable, secure, and easy-to-use offline tool for BAIF teams working in rural areas to:
-- Transcribe local language recordings
-- Translate between English, Hindi, and Marathi
-- Generate voice output and subtitles
+Provide a resilient, secure, and zero-connectivity tool for BAIF teams working in remote rural areas to:
+- Transcribe local language focus group recordings and field interviews.
+- Translate text between English, Hindi, and Marathi fully locally.
+- Generate translated voice clips, `.srt` subtitle documents, and hard-subtitled videos directly on-site.
 
 ---
 
 ## ✨ Features
 
-- ✅ Audio & Video Upload (MP4, MOV, MP3, WAV, M4A, etc.)
-- ✅ Speech-to-Text Transcription (MLX Whisper)
-- ✅ Translation: English ↔ Hindi ↔ Marathi
-- ✅ Text-to-Speech (Voice Generation) – Full English support
-- ✅ SRT Subtitle Generation
-- ✅ Burn Subtitles into Video
-- ✅ Download Translated Text
-- ✅ Recent Translations History
-- ✅ Modern Responsive UI
-- ✅ 100% Offline & Open Source
+- ✅ **Dual-Media Upload:** Full native compatibility with audio/video formats (MP4, MOV, MP3, WAV, M4A).
+- ✅ **Local Speech-to-Text:** Powered by `MLX Whisper` (`whisper-base`), optimized to utilize Apple Silicon neural cores.
+- ✅ **Deep Translation Engine:** Sequential timeline matrix translation utilizing local `Helsinki-NLP OPUS-MT` transformer blocks.
+- ✅ **Smart Multi-Language Subtitles:** Generates valid `.srt` files translated directly into the picked target language.
+- ✅ **Hardware-Accelerated Burn-in:** Overlays and burns hard subtitles into video containers cleanly via multi-pass local `FFmpeg` engines.
+- ✅ **Local Hotspot Mode:** Allows the host laptop to broadcast the app to nearby field tablets or smartphones over a local Wi-Fi router or hotspot.
+- ✅ **Data Security:** 100% offline. Zero tracking cookies, zero external API queries, and automatic 24-hour temporary directory cleanup cycles.
 
 ---
 
 ## 🏗️ Project Architecture
+
+```text
 baif-translator/
 ├── src/
 │   ├── backend/
-│   │   └── main.py                 # FastAPI Server + All Endpoints
+│   │   └── main.py          # FastAPI Core Server + Translation Engine Endpoints
 │   └── frontend/
 │       └── static/
-│           ├── index.html          # Modern Dashboard UI
+│           ├── index.html   # Step-by-Step Interactive Workflow Dashboard
+│           ├── css/
+│           │   └── style.css # Custom Transitions & Responsive Card Layouts
 │           └── js/
-│               └── app.js          # Frontend Logic
-├── uploads/                        # Temporary uploaded media
-├── outputs/                        # SRT, Audio, Burned Videos
-├── run.sh                          # Start the app
-├── setup.sh                        # Initial setup script
-├── requirements.txt
-├── config.py
-├── push-all.sh                     # Push to both GitHub repos
+│               └── app.js   # Dynamic App State Controller & Media Drivers
+├── uploads/                 # Secure automated temporary media drop zone
+├── outputs/                 # Exported Audio blocks, generated SRTs, and Rendered Videos
+├── run.sh                   # Dynamic Multi-Interface Network Bootstrapper
+├── setup.sh                 # Pre-deployment Dependency Compiler & Model Cache Warmup
+├── requirements.txt         # Pinned Local Python Dependencies
+├── config.py                # Global Network Routing and Token Limit Settings
+├── push-all.sh              # Sync scripts for multi-repository configuration
 └── README.md
 
-
+```
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Component            | Technology                              | Purpose |
-|----------------------|-----------------------------------------|--------|
-| Backend              | FastAPI (Python)                        | API Server |
-| Transcription        | MLX Whisper (`whisper-base`)            | Speech-to-Text (Apple Silicon Optimized) |
-| Translation          | Helsinki-NLP OPUS-MT models             | Text Translation |
-| Text-to-Speech       | macOS `say` command                     | Voice Output (English) |
-| Media Processing     | FFmpeg                                  | Audio/Video handling & Subtitle burning |
-| Frontend             | HTML + Tailwind CSS + Vanilla JS        | User Interface |
-| Local Storage        | Browser localStorage                    | History |
+| Component | Technology | Purpose |
+| --- | --- | --- |
+| **Backend Framework** | FastAPI (Python 3.11) | High-performance async local request management |
+| **Speech-to-Text** | MLX Whisper (`whisper-base-mlx`) | Local audio transcription (Apple Silicon Matrix Optimized) |
+| **Translation Engine** | Helsinki-NLP OPUS-MT Models | Tokenized linguistic language mapping pipelines |
+| **Text-to-Speech** | macOS Native Speech Tool + FFmpeg | Synthesis voice rendering engines (English Core) |
+| **Media Processing** | FFmpeg (compiled with `libass`) | Subtitle burn-in matrix overlay & track mapping |
+| **Frontend Layout** | HTML5 + Tailwind CSS + Vanilla JS | Responsive Field Dashboard Interface |
+| **Local Persistence** | Web Storage API (`localStorage`) | Secure, local-only translation activity logs |
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Pre-Field Deployment & Setup
 
-### 1. Setup (First Time)
+> ⚠️ **CRITICAL WARNING:** Run the setup sequence while connected to a stable, high-speed office internet connection. The script automatically fetches and caches several gigabytes of advanced neural network weights directly to the laptop's storage so that they are ready to run 100% offline later.
+
+### 1. One-Time Setup Preparation
+
+Clone this repository on your Apple Silicon MacBook and run the automated setup command:
+
 ```bash
+chmod +x setup.sh run.sh
 ./setup.sh
 
+```
+
+*This script automatically verifies Homebrew, updates Python modules, builds a virtual workspace environment, prepares storage paths, and caches the Whisper and Helsinki-NLP translation models.*
+
+### 2. Launching the Local Engine
+
+Whenever you are out in the field, launch the system by opening your terminal and typing:
+
+```bash
 ./run.sh
+
+```
+
+---
+
+## 📱 Field Usage & Multi-Device Hotspot Pairing
+
+When you run `./run.sh`, the terminal automatically detects your laptop's system network address and displays access routes:
+--------------------------------------------------------
+🌐 Local Laptop Access: http://localhost:8000
+📱 Field Tablet Hotspot Access: [http://192.168.1.45:8000](http://192.168.1.45:8000)
+--------------------------------------------------------
+
+1. **On the Host Laptop:** Open `http://localhost:8000` in Safari or Chrome to manage translations.
+2. **On Nearby Field Tablets/Phones:** Turn on your laptop's Wi-Fi hotspot. Connect field devices to that hotspot, open a mobile browser, and type the **Field Tablet Hotspot Access IP** (e.g., `http://192.168.1.45:8000`) to access and use the tool simultaneously without cell tower signal!
