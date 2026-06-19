@@ -40,7 +40,7 @@ def get_translation_engine(target_lang: str):
 
 
 # ========================================================
-# NEW STORAGE TRACKING MONITOR UTILITY ENDPOINTS
+# STORAGE TRACKING MONITOR UTILITY ENDPOINTS
 # ========================================================
 
 @app.get("/system/storage")
@@ -92,16 +92,40 @@ async def root():
         return f.read()
 
 @app.post("/transcribe")
-async def transcribe_audio(file: UploadFile = File(...)):
+async def transcribe_audio(file: UploadFile = File(...), model_size: str = Form("base")):
     file_path = None
     try:
         file_path = UPLOAD_DIR / f"transcribe_{uuid.uuid4().hex[:8]}_{file.filename}"
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         
+        # Expand user path to point directly to your localized cache directory (~/.cache/mlx_models/)
+        base_model_dir = Path(os.path.expanduser("~/.cache/mlx_models"))
+        
+        # Map choice identifiers strictly to the local directory folders created by setup.sh
+        model_mapping = {
+            "tiny": base_model_dir / "whisper-tiny",
+            "base": base_model_dir / "whisper-base",
+            "small": base_model_dir / "whisper-small",
+            "medium": base_model_dir / "whisper-medium",
+            "large": base_model_dir / "whisper-large-v3"
+        }
+        
+        # Fallback to the local whisper-base folder if selection isn't explicitly mapped
+        target_model_path = model_mapping.get(model_size.lower(), base_model_dir / "whisper-base")
+        
+        # Verify local storage availability before executing heavy computing layers
+        if not target_model_path.exists():
+            return JSONResponse({
+                "status": "error", 
+                "message": f"Local model directory not found at {target_model_path}. Please complete setup.sh while connected to the internet."
+            }, status_code=400)
+        
+        # Passing an absolute file-path string forces mlx_whisper to read tensors locally
+        # and completely bypass remote Hugging Face network lookups.
         result = mlx_whisper.transcribe(
             str(file_path),
-            path_or_hf_repo=Config.WHISPER_MODEL,
+            path_or_hf_repo=str(target_model_path),
             verbose=False,
             word_timestamps=True
         )

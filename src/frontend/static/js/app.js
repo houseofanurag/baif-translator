@@ -1,6 +1,6 @@
-// ================================================
-// BAIF Offline Translator - Complete Frontend Engine
-// ================================================
+// ================================================================
+// BAIF Offline Translator - Complete Frontend Engine (Production)
+// ================================================================
 
 let currentText = "";
 let currentTranslatedText = "";
@@ -136,7 +136,7 @@ function showStatus(message, statusType = "info") {
 }
 
 // ========================================================
-// NEW TRACKING ENGINE: STORAGE TELEMETRY & CACHE MANAGER
+// TRACKING ENGINE: STORAGE TELEMETRY & CACHE MANAGER
 // ========================================================
 
 async function updateStorageTelemetry() {
@@ -257,6 +257,8 @@ async function transcribe() {
   const fileInput = document.getElementById('mediaFile');
   if (!fileInput.files.length) return alert("Please map an operational audio or video media file first.");
 
+  const modelSize = document.getElementById('modelSize').value; // Track current compute config
+
   currentFileName = fileInput.files[0].name;
   currentText = ""; 
   currentTranslatedText = "";
@@ -265,10 +267,11 @@ async function transcribe() {
   renderResult();
   updateButtonStates();
 
-  showStatus(`MLX Whisper initializing local compute cores for ${currentFileName}...`, "info");
+  showStatus(`Whisper AI Core loading [${modelSize.toUpperCase()}] matrix for ${currentFileName}...`, "info");
 
   const formData = new FormData();
   formData.append("file", fileInput.files[0]);
+  formData.append("model_size", modelSize); // Forward configuration state payload
 
   try {
     const res = await fetch("/transcribe", { method: "POST", body: formData });
@@ -276,7 +279,7 @@ async function transcribe() {
     if (data.status === "success") {
       currentText = data.transcribed_text;
       currentSegments = data.segments || [];
-      showStatus("✅ MLX Core Transcription Finished", "success");
+      showStatus("✅ Whisper Compute Core Transcription Finished", "success");
       renderResult();
       updateButtonStates();
       
@@ -420,7 +423,9 @@ async function executeSrtGenerationBackend(isSilentUpdate = false) {
     const data = await res.json();
     if (data.status === "success") {
       currentSrtFileName = data.srt_url.split('/').pop();
-      showStatus("✅ Structured SRT Matrix Compiled Successfully", "success");
+      if(!isSilentUpdate) {
+        showStatus("✅ Structured SRT Matrix Compiled Successfully", "success");
+      }
       
       document.getElementById('downloadLinksCard').classList.remove('hidden');
       document.getElementById('srtLink').innerHTML = `
@@ -432,7 +437,6 @@ async function executeSrtGenerationBackend(isSilentUpdate = false) {
       renderSrtEditorUI();
       updateButtonStates();
       
-      // Update data indicators to track the new .srt file size
       await updateStorageTelemetry();
     }
   } catch (e) {
@@ -447,15 +451,23 @@ async function burnSubtitles() {
     if (inputEl) seg.text = inputEl.value;
   });
 
+  // 1. Core Synchronization Warmup state
   showStatus("Syncing final layout layers and compiling temporary operational tracks...", "info");
   await executeSrtGenerationBackend(true);
 
   if (!hasSrtFile()) return alert("Please build standard subtitle assets before firing burning routines.");
 
-  showStatus("Processing high-intensity FFmpeg multi-pass overlay. Do not close app...", "info");
-
   const fileInput = document.getElementById('mediaFile');
   if (!fileInput.files.length) return alert("Original file trace is missing. Re-map media link.");
+
+  // 2. ENTER "UNDER PROCESSING" LOADING VISUAL STATE
+  const burnBtn = document.getElementById('burnBtn');
+  const originalBtnText = burnBtn.innerHTML;
+  
+  burnBtn.disabled = true;
+  burnBtn.innerHTML = `<i class="fas fa-circle-notch animate-spin mr-1.5"></i> Under Processing...`;
+  
+  showStatus("⏳ Processing high-intensity FFmpeg multi-pass overlay. Re-encoding video layers offline on laptop disk. Do not close app...", "info");
 
   const formData = new FormData();
   formData.append("original_video", fileInput.files[0]);
@@ -464,6 +476,7 @@ async function burnSubtitles() {
   try {
     const res = await fetch("/burn_subtitles", { method: "POST", body: formData });
     const data = await res.json();
+    
     if (data.status === "success") {
       showStatus("✅ Video Burn Processing Executed Perfectly!", "success");
       
@@ -477,13 +490,19 @@ async function burnSubtitles() {
       const previewVideo = document.getElementById('previewVideo');
       if(previewVideo) previewVideo.src = data.video_url;
       
-      // Update usage readout after generating the output video file
-      await updateStorageTelemetry();
     } else {
       showStatus(`❌ Engine feedback details: ${data.message}`, "error");
     }
   } catch (e) {
     showStatus("❌ Video hard rendering logic broke. Check system asset logs.", "error");
+  } finally {
+    // 3. CLEANUP STATE MATRIX & FLUSH BUTTON LOCKS
+    burnBtn.disabled = false;
+    burnBtn.innerHTML = originalBtnText;
+    updateButtonStates();
+    
+    // Always sync usage readouts whether render crashed or finished successfully
+    await updateStorageTelemetry();
   }
 }
 
@@ -571,6 +590,8 @@ function stopRecording() {
 }
 
 async function uploadLiveRecording(file) {
+  const modelSize = document.getElementById('modelSize').value; // Read model preference for live stream
+
   currentFileName = file.name;
   currentText = ""; 
   currentTranslatedText = "";
@@ -579,10 +600,11 @@ async function uploadLiveRecording(file) {
   renderResult();
   updateButtonStates();
 
-  showStatus("Processing live recording audio bytes through local MLX Whisper compute layers...", "info");
+  showStatus(`Processing live stream through [${modelSize.toUpperCase()}] compute layers...`, "info");
 
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("model_size", modelSize); // Send configuration field along with live capture blob
 
   try {
     const res = await fetch("/transcribe", { method: "POST", body: formData });

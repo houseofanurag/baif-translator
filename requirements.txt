@@ -3,6 +3,7 @@ uvicorn[standard]==0.28.0
 python-multipart==0.0.9
 mlx-whisper
 transformers==4.38.2
+huggingface_hub     # Handles isolated, offline model down-packaging seamlessly
 sacremoses          # Required for Helsinki-NLP OPUS-MT translation tokenizers
 sentencepiece       # Required for localized linguistic model translation processing
 torch

@@ -1,3 +1,4 @@
+
 # BAIF Offline Translator
 
 A fully **offline**, hardware-accelerated translation and subtitling suite built explicitly for BAIF field teams. It processes **audio and video** inputs, transcribes speech locally, translates between Indian languages, and generates multiple multimedia outputs—all without an internet connection.
@@ -35,10 +36,10 @@ baif-translator/
 │   ├── backend/
 │   │   └── main.py          # FastAPI Core Server + Translation Engine & Storage Endpoints
 │   └── frontend/
+│       ├── index.html       # Responsive Field Dashboard + Telemetry Node Layout
 │       └── static/
-│           ├── index.html   # Responsive Field Dashboard + Telemetry Node Layout
 │           ├── css/
-│           │   └── style.css # Custom Transitions & Responsive Card Layouts
+│           │   └── style.css # Decoupled Transitions, Responsive Architecture & Custom Scrollbars
 │           └── js/
 │               └── app.js   # Dynamic App State Controller, Media Drivers & Cache Sync
 ├── uploads/                 # Secure automated temporary media drop zone

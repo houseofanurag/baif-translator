@@ -1,7 +1,23 @@
 #!/bin/bash
 
-echo "🚀 BAIF Offline Translator - Production Field Setup"
+echo "🚀 BAIF Offline Translator - Conditional Setup Matrix"
 echo "=================================================="
+
+# ==================== INTERACTIVE PROFILE SELECTION ====================
+IS_PROD=false
+
+read -p "❓ Is this installation for a Production Field Laptop? (y/N): " choice
+case "$choice" in 
+  [yY][eE][sS]|[yY])
+    echo "⚠️  Production Mode Selected: Full offline dependencies will be cached (~6GB disk space needed)."
+    IS_PROD=true
+    ;;
+  *)
+    echo "💻 Development / Personal Mode Selected: Only minimal lightweight models will be cached to save space."
+    IS_PROD=false
+    ;;
+esac
+echo "--------------------------------------------------"
 
 # ==================== SYSTEM CHECKS ====================
 
@@ -21,6 +37,15 @@ if ! command -v python3.11 &> /dev/null; then
     brew install python@3.11
 else
     echo "✅ Python 3.11 found"
+fi
+
+# Check Git LFS
+if ! command -v git-lfs &> /dev/null; then
+    echo "⚠️  Git LFS not found. Installing via Homebrew..."
+    brew install git-lfs
+    git lfs install
+else
+    echo "✅ Git LFS is installed"
 fi
 
 # Check and install FFmpeg-full (required for burned subtitles)
@@ -57,22 +82,49 @@ pip install -r requirements.txt
 # Create necessary directories
 echo "📁 Creating project directories..."
 mkdir -p uploads outputs
+mkdir -p "$HOME/.cache/mlx_models"
 
-# ==================== OFFLINE MODEL WARMUP ====================
-echo "📥 Pre-downloading AI Models for 100% Offline Field Readiness..."
+# ==================== CONDITIONAL OFFLINE MODEL WARMUP ====================
+echo "📥 Pre-downloading AI Models based on selected environmental configuration..."
 echo "⚠️  Ensure you have a stable internet connection right now!"
 
 python3 -c "
-import mlx_whisper
+import os
+import sys
+from pathlib import Path
+from huggingface_hub import snapshot_download
 from transformers import pipeline
-print('Downloading Whisper Base MLX model...')
-mlx_whisper.transcribe(None, path_or_hf_repo='mlx-community/whisper-base-mlx', download_only=True)
+
+# Read the environment variable passed from bash
+is_prod_env = os.environ.get('BAIF_PROD_SETUP', 'false') == 'true'
+base_model_dir = Path(os.path.expanduser('~/.cache/mlx_models'))
+
+print('Downloading Whisper Tiny MLX model locally...')
+snapshot_download(repo_id='mlx-community/whisper-tiny', local_dir=base_model_dir / 'whisper-tiny')
+
+print('Downloading Whisper Base MLX model locally...')
+snapshot_download(repo_id='mlx-community/whisper-base-mlx', local_dir=base_model_dir / 'whisper-base')
+
+if is_prod_env:
+    print('📦 [PROD-ONLY] Downloading Whisper Small MLX model locally...')
+    snapshot_download(repo_id='mlx-community/whisper-small-mlx', local_dir=base_model_dir / 'whisper-small')
+
+    print('📦 [PROD-ONLY] Downloading Whisper Medium MLX model locally...')
+    snapshot_download(repo_id='mlx-community/whisper-medium-mlx', local_dir=base_model_dir / 'whisper-medium')
+
+    print('📦 [PROD-ONLY] Downloading Whisper Large V3 MLX model locally...')
+    snapshot_download(repo_id='mlx-community/whisper-large-v3-mlx', local_dir=base_model_dir / 'whisper-large-v3')
+else:
+    print('⏭️  [DEV-MODE] Skipping Small, Medium, and Large V3 whisper weights to save local storage.')
+
 print('Downloading Helsinki English-to-Hindi translation models...')
 pipeline('translation', model='Helsinki-NLP/opus-mt-en-hi')
+
 print('Downloading Helsinki English-to-Marathi translation models...')
 pipeline('translation', model='Helsinki-NLP/opus-mt-en-mr')
-print('✅ All translation models are warm and cached locally!')
-" || echo "⚠️ Model caching skipped or failed. Ensure internet is active before taking this tool to the field."
+
+print('✅ Model caching run completed successfully!')
+" BAIF_PROD_SETUP=$IS_PROD || echo "⚠️ Model caching skipped or failed. Ensure internet is active before running."
 
 # Make scripts executable
 chmod +x run.sh setup.sh
@@ -82,7 +134,4 @@ echo "🎉 Setup Completed Successfully!"
 echo ""
 echo "How to run the application:"
 echo "   ./run.sh"
-echo ""
-echo "Open in browser → http://localhost:8000"
-echo "To share with nearby tablets over local Wi-Fi, use your laptop's IP address."
 echo ""

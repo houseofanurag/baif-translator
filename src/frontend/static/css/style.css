@@ -1,5 +1,28 @@
-/* Custom UI Base Design Architecture for BAIF Translator */
+/* ================================================================
+   Custom UI Base Design Architecture for BAIF Translator
+   ================================================================ */
 
+/* Base Typography Configuration */
+body { 
+  font-family: 'Inter', system-ui, sans-serif; 
+}
+
+.heading-font { 
+  font-family: 'Space Grotesk', sans-serif; 
+}
+
+/* Background & Blur Utilities */
+.glass { 
+  background: rgba(255, 255, 255, 0.96); 
+  backdrop-filter: blur(16px); 
+}
+
+/* Restored Core Blue Gradient for Local Resource Panel */
+.hero-bg { 
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%) !important; 
+}
+
+/* Structural Components */
 .glass-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -16,6 +39,14 @@
   border-radius: 16px;
 }
 
+.result-box {
+  background: #f8fafc;
+  border-radius: 18px;
+  padding: 20px;
+  min-height: 240px;
+}
+
+/* Action Trigger Elements */
 .btn-primary {
   background-color: #2563eb;
   color: #ffffff;
@@ -46,13 +77,6 @@
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
-.result-box {
-  background: #f8fafc;
-  border-radius: 18px;
-  padding: 20px;
-  min-height: 240px;
-}
-
 /* Custom Scrollbar styling for smooth localized asset lists */
 ::-webkit-scrollbar {
   width: 6px;
@@ -69,6 +93,7 @@
   background: #94a3b8;
 }
 
+/* Responsive Adaptive Viewports */
 @media (max-width: 768px) {
   .glass-card {
     padding: 20px;

@@ -8,14 +8,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/css/style.css">
-  <style>
-    body { font-family: 'Inter', system-ui, sans-serif; }
-    .heading-font { font-family: 'Space Grotesk', sans-serif; }
-    .glass { background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(16px); }
-    .hero-bg { background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%); }
-    .step-badge { @apply w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm; }
-  </style>
+<link rel="stylesheet" href="/static/css/style.css?v=1.1">
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800">
 
@@ -62,7 +55,7 @@
         <div class="grid md:grid-cols-2 gap-6">
           
           <div class="glass-card shadow-sm border border-slate-200/60">
-            <div class="flex items-center gap-4 mb-6">
+            <div class="flex items-center gap-4 mb-4">
               <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
                 <i class="fas fa-microphone text-xl"></i>
               </div>
@@ -70,6 +63,16 @@
                 <h3 class="text-lg font-bold text-slate-900">1. Input Media File</h3>
                 <p class="text-xs text-slate-500">Supports MP3, WAV, MP4, MOV</p>
               </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Select Whisper AI Compute Engine</label>
+              <select id="modelSize" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/10 font-medium">
+                <option value="tiny">Whisper Tiny (⚡ Speed Core - Ultra Fast)</option>
+                <option value="base" selected>Whisper Base (⚖️ Recommended Balance)</option>
+                <option value="small">Whisper Small (🎯 High Precision Track)</option>
+                <option value="medium">Whisper Medium (🎬 Deep Production - High Resource)</option>
+              </select>
             </div>
             
             <div class="border-2 border-dashed border-slate-200 rounded-2xl p-4 text-center hover:border-blue-400 transition cursor-pointer relative bg-slate-50/50">
@@ -103,7 +106,7 @@
                 <span id="recordingTimer" class="text-xs font-mono font-bold text-slate-400 hidden bg-slate-100 px-2.5 py-1 rounded-lg">00:00</span>
               </div>
               <p class="text-xs text-slate-500 leading-relaxed mt-2">
-                Capture voice inputs on-site without external equipment. Audio saves straight to local memory files before triggering MLX Whisper.
+                Capture voice inputs on-site without external equipment. Audio saves straight to local memory files before triggering local AI Whisper arrays.
               </p>
             </div>
 
