@@ -1,6 +1,3 @@
-# Updated README.md - BAIF Offline Translator
-
-```markdown
 # BAIF Offline Translator
 
 A fully **offline**, hardware-accelerated translation and subtitling suite built explicitly for BAIF field teams. It processes **audio and video** inputs, transcribes speech locally, translates between Indian languages, and generates multiple multimedia outputs—all without an internet connection.
@@ -10,6 +7,7 @@ A fully **offline**, hardware-accelerated translation and subtitling suite built
 ## 🎯 Objective
 
 Provide a resilient, secure, and zero-connectivity tool for BAIF teams working in remote rural areas to:
+
 - Transcribe local language focus group recordings and field interviews.
 - Translate text between **English, Hindi, and Marathi** fully locally with bidirectional support.
 - Generate translated voice clips, `.srt` subtitle documents, and hard-subtitled videos directly on-site.
@@ -23,7 +21,7 @@ Provide a resilient, secure, and zero-connectivity tool for BAIF teams working i
 - ✅ **Dual-Media Upload:** Full native compatibility with audio/video formats (MP4, MOV, MP3, WAV, M4A, MKV, WebM).
 - ✅ **Real-Time Field Mic Capture:** Captures voice inputs on-site using standard browser media APIs, routing raw audio directly to local memory pipelines.
 - ✅ **Cross-Platform Local Speech-to-Text:** Powered by `faster-whisper` with VAD (Voice Activity Detection) filtering. Supports Tiny, Base, Small, Medium, and Large models.
-- ✅ **Bidirectional Translation Engine:** 
+- ✅ **Bidirectional Translation Engine:**
   - English ↔ Hindi (NLLB-200 + Opus-MT)
   - English ↔ Marathi (NLLB-200 + Opus-MT)
   - Hindi ↔ Marathi (NLLB-200)
@@ -42,7 +40,7 @@ Provide a resilient, secure, and zero-connectivity tool for BAIF teams working i
 
 ## 🏗️ Project Architecture
 
-```text
+```
 baif-translator/
 ├── src/
 │   ├── backend/
@@ -188,10 +186,10 @@ uvicorn src.backend.main:app --host 0.0.0.0 --port 8000 --reload
 
 When the boot routines initiate, the system automatically hooks onto available local network bindings and interfaces:
 
-```text
+```
 --------------------------------------------------------
 🌐 Local Computer Access: http://localhost:8000
-📱 Field Tablet Hotspot Access: [http://192.168.1.45:8000](http://192.168.1.45:8000)
+📱 Field Tablet Hotspot Access: http://192.168.1.45:8000
 --------------------------------------------------------
 ```
 
@@ -326,18 +324,28 @@ This project is released under the **MIT License**. See the [LICENSE](LICENSE) f
 For technical support, please contact the BAIF technical team or raise an issue on GitHub.
 
 ---
+
+**Made with ❤️ for BAIF Field Teams**
 ```
 
-## Key Updates Made:
+---
 
-1. **Added Bidirectional Translation Support** - English ↔ Hindi, English ↔ Marathi, Hindi ↔ Marathi
-2. **Updated Tech Stack** - Added faster-whisper, NLLB-200, Librosa, SciPy
-3. **New Features Section** - Added VAD, Progress Tracking, TTS, Audio Preprocessing
-4. **Updated Architecture** - Added config.py, push_code.sh, Windows scripts
-5. **New Endpoint Documentation** - Added all API endpoints
-6. **Model Pre-Caching Details** - Added model sizes and storage requirements
-7. **Detailed User Guide** - Step-by-step instructions for field use
-8. **Performance Benchmarks** - Added model comparison table
-9. **Troubleshooting Section** - Common issues and solutions
-10. **Security & Privacy Section** - Zero data leakage guarantee
-11. **Updated Deployment Guide** - Both macOS/Linux and Windows instructions
+## How to Download
+
+### Option 1: Save as File (Manual)
+1. Select all the text above (Ctrl+A / Cmd+A)
+2. Copy (Ctrl+C / Cmd+C)
+3. Open a text editor (Notepad, VS Code, etc.)
+4. Paste (Ctrl+V / Cmd+V)
+5. Save as `README.md`
+
+### Option 2: Using curl (Terminal)
+```bash
+# This will download the README.md file directly
+curl -o README.md "https://raw.githubusercontent.com/houseofanurag/baif-translator/main/README.md"
+```
+
+### Option 3: Using wget
+```bash
+wget -O README.md "https://raw.githubusercontent.com/houseofanurag/baif-translator/main/README.md"
+```
