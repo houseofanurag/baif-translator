@@ -1,6 +1,7 @@
 @echo off
 SETLOCAL EnableDelayedExpansion
 cls
+
 echo ========================================================
 echo 🌐 BAIF Offline Translator - Windows Deployment Engine
 echo ========================================================
@@ -12,7 +13,8 @@ if not exist "venv\Scripts\activate.bat" (
     pause
     exit /b 1
 )
-call .\venv\Scripts\activate
+
+call .\venv\Scripts\activate.bat
 
 :: Extract Local IP Configuration for Hotspot tracking
 set "LOCAL_IP=localhost"
@@ -30,7 +32,9 @@ echo 🌐 Local Computer Access:       http://localhost:8000
 echo 📱 Field Tablet Hotspot Access: http://!LOCAL_IP!:8000
 echo --------------------------------------------------------
 echo.
-echo 🔥 Igniting FastAPI application loops...
+echo 🔥 Starting FastAPI application...
+echo Press Ctrl+C to stop the server safely
+echo.
 
 :: Fire local hot-reloaded service pipeline bound to all network cards
 uvicorn src.backend.main:app --host 0.0.0.0 --port 8000 --reload

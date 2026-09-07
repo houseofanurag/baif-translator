@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22 width=%22100%22 height=%22100%22><rect width=%22100%22 height=%22100%22 rx=%2224%22 fill=%22%232563eb%22/><path d=%22M50 22C34.5 22 22 34.5 22 50C22 65.5 34.5 78 50 78C65.5 78 78 65.5 78 50C78 34.5 65.5 22 50 22ZM50 28C54 34.5 56 42 56 50C56 58 54 65.5 50 72C46 65.5 44 58 44 50C44 42 46 34.5 50 28ZM28.5 47H38.5C38.7 41.5 39.5 36.5 40.8 32C34.5 35 30.5 40.5 28.5 47ZM61.5 47H71.5C69.5 40.5 65.5 35 59.2 32C60.5 36.5 61.3 41.5 61.5 47ZM38.5 53H28.5C30.5 59.5 34.5 65 40.8 68C39.5 63.5 38.7 58.5 38.5 53ZM59.2 68C65.5 65 69.5 59.5 71.5 53H61.5C61.3 58.5 60.5 63.5 59.2 68Z%22 fill=%22%23ffffff%22/><circle cx=%2280%22 cy=%2220%22 r=%2210%22 fill=%22%2310b981%22/><path d=%22M77 20L79 22L83 18%22 stroke=%22%23ffffff%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 fill=%22none%22/></svg>">
-  <title>BAIF Offline Translator</title>
+  <title>BAIF Offline Translator - Hindi, Marathi, English</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/style.css?v=1.1">
+  <link rel="stylesheet" href="/static/css/style.css?v=3.0">
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800">
 
@@ -19,7 +19,7 @@
         <div>
           <h1 class="heading-font text-2xl font-bold text-slate-900 tracking-tight">BAIF Translator</h1>
           <p class="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Offline • Field Ready
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Offline • Hindi • Marathi • English
           </p>
         </div>
       </div>
@@ -34,7 +34,7 @@
     <div class="hero-bg rounded-3xl p-8 text-white mb-8 shadow-lg shadow-blue-900/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
       <div>
         <h2 class="text-3xl font-bold heading-font mb-1">Local Resource Panel</h2>
-        <p class="text-blue-100 text-sm">Transcribe speech, translate locally, and generate localized audio & subtitle outputs securely.</p>
+        <p class="text-blue-100 text-sm">Transcribe speech, translate between English/Hindi/Marathi, and generate localized audio & subtitle outputs securely.</p>
       </div>
       <div class="flex items-center gap-2 bg-black/10 p-3 rounded-2xl w-full md:w-auto overflow-x-auto">
         <div id="step1-badge" class="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">1</div>
@@ -66,12 +66,31 @@
             </div>
 
             <div class="mb-4">
-              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Select Whisper AI Compute Engine</label>
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Select Whisper AI Model</label>
               <select id="modelSize" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/10 font-medium">
-                <option value="tiny">Whisper Tiny (⚡ Speed Core - Ultra Fast)</option>
-                <option value="base" selected>Whisper Base (⚖️ Recommended Balance)</option>
-                <option value="small">Whisper Small (🎯 High Precision Track)</option>
-                <option value="medium">Whisper Medium (🎬 Deep Production - High Resource)</option>
+                <option value="tiny">Whisper Tiny (⚡ Speed - Ultra Fast)</option>
+                <option value="base" selected>Whisper Base (⚖️ Fast & Balanced)</option>
+                <option value="small">Whisper Small (🎯 Good Quality)</option>
+                <option value="medium">Whisper Medium (🎬 Recommended - Best Balance)</option>
+                <option value="large">Whisper Large (🏆 Maximum Accuracy - Slower)</option>
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Source Language</label>
+              <select id="languageSelect" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/10 font-medium">
+                <option value="auto">🔍 Auto-Detect (Recommended)</option>
+                <option value="en">English (en)</option>
+                <option value="hi">Hindi (हिंदी)</option>
+                <option value="mr">Marathi (मराठी)</option>
+              </select>
+            </div>
+
+            <div class="mb-4">
+              <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Voice Activity Detection (VAD)</label>
+              <select id="vadFilter" class="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/10 font-medium">
+                <option value="true">Enabled (Recommended - Removes Silence)</option>
+                <option value="false">Disabled</option>
               </select>
             </div>
             
@@ -85,8 +104,20 @@
               </div>
             </div>
 
+            <!-- Progress Bar Container -->
+            <div id="progressContainer" class="mt-4 hidden">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs font-medium text-slate-600">Processing...</span>
+                <span id="progressPercentage" class="text-xs font-bold text-blue-600">0%</span>
+              </div>
+              <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+              </div>
+              <div id="progressStatus" class="text-[10px] text-slate-400 mt-1">Initializing...</div>
+            </div>
+
             <button onclick="transcribe()" id="transcribeBtn"
-                    class="mt-6 w-full btn-primary flex items-center justify-center gap-2 shadow-sm">
+                    class="mt-4 w-full btn-primary flex items-center justify-center gap-2 shadow-sm">
               <i class="fas fa-play text-sm"></i> Process & Transcribe
             </button>
           </div>
@@ -129,20 +160,27 @@
               </div>
               <div>
                 <h3 class="text-lg font-bold text-slate-900">2. Local Translation Engine</h3>
-                <p class="text-xs text-slate-500">Target localized language transformations</p>
+                <p class="text-xs text-slate-500">Translate between English, Hindi, and Marathi</p>
               </div>
             </div>
-            <div class="flex-1 max-w-xs w-full">
-              <select id="targetLang" class="w-full p-3 border border-slate-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium">
-                <option value="en">English (Original Language Check)</option>
-                <option value="hi">Hindi (हिंदी)</option>
-                <option value="mr">Marathi (मराठी)</option>
+            <div class="flex-1 flex gap-3 max-w-xs w-full">
+              <select id="sourceLang" class="w-1/2 p-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium">
+                <option value="auto">🔍 Auto-Detect</option>
+                <option value="en">English</option>
+                <option value="hi">Hindi</option>
+                <option value="mr">Marathi</option>
+              </select>
+              <span class="text-xs text-slate-400 flex items-center">→</span>
+              <select id="targetLang" class="w-1/2 p-2 border border-slate-200 rounded-xl text-xs bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium">
+                <option value="en">English</option>
+                <option value="hi" selected>Hindi</option>
+                <option value="mr">Marathi</option>
               </select>
             </div>
           </div>
           <button onclick="translateText()" id="translateBtn" disabled
                   class="mt-4 w-full btn-secondary flex items-center justify-center gap-2 disabled:opacity-40 disabled:pointer-events-none shadow-sm">
-            <i class="fas fa-globe text-sm"></i> Run Local Translation Pipeline
+            <i class="fas fa-globe text-sm"></i> Run Translation Pipeline
           </button>
         </div>
 

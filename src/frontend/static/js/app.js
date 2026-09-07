@@ -7,6 +7,8 @@ let currentTranslatedText = "";
 let currentSegments = [];
 let currentFileName = "";
 let currentSrtFileName = "";
+let currentLanguage = "en";
+let currentConfidence = 0;
 
 // Microphone Capture Instances Tracking
 let mediaRecorder;
@@ -24,7 +26,6 @@ function updateButtonStates() {
   document.getElementById('downloadBtn').disabled = !hasTranslation;
   document.getElementById('ttsBtn').disabled = !hasTranslation;
 
-  // Update visual wizard steps based on active milestones
   const badge1 = document.getElementById('step1-badge');
   const badge2 = document.getElementById('step2-badge');
   const badge3 = document.getElementById('step3-badge');
@@ -89,10 +90,14 @@ function renderResult() {
   let html = '<div class="grid md:grid-cols-2 gap-6">';
 
   if (currentText) {
+    const langDisplay = currentLanguage.toUpperCase();
+    const confidenceDisplay = currentConfidence ? Math.round(currentConfidence * 100) : 0;
     html += `
       <div class="space-y-2">
         <h4 class="text-xs font-bold text-blue-700 uppercase tracking-wider flex items-center gap-1.5">
-          <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span> Original Transcription Output
+          <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span> 
+          Original Transcription (${langDisplay})
+          ${confidenceDisplay > 0 ? `<span class="text-emerald-600 text-[10px] ml-2">Confidence: ${confidenceDisplay}%</span>` : ''}
         </h4>
         <div class="bg-slate-50 p-4 border border-slate-200/50 rounded-2xl text-slate-700 text-sm leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto">${currentText}</div>
       </div>`;
@@ -100,10 +105,13 @@ function renderResult() {
 
   if (currentTranslatedText && currentTranslatedText !== currentText) {
     const targetLang = document.getElementById('targetLang').value.toUpperCase();
+    const sourceLang = document.getElementById('sourceLang').value.toUpperCase();
     html += `
       <div class="space-y-2">
         <h4 class="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-1.5">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> Translated Language Text (${targetLang})
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span> 
+          Translated Text (${sourceLang} → ${targetLang})
+          <span class="text-[10px] font-normal text-emerald-500 ml-2">✓ Translation Engine</span>
         </h4>
         <div class="bg-emerald-50 p-4 border border-emerald-200/50 rounded-2xl text-slate-800 text-sm leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto font-medium">${currentTranslatedText}</div>
       </div>`;
@@ -111,7 +119,7 @@ function renderResult() {
     html += `
       <div class="space-y-2 flex flex-col justify-center items-center bg-slate-50/50 border border-dashed border-slate-200 rounded-2xl p-4 text-slate-400 text-xs">
         <i class="fas fa-arrow-left text-lg mb-1 text-slate-300"></i>
-        <span>Select target language above to apply local conversion models.</span>
+        <span>Select source and target languages above to translate</span>
       </div>`;
   }
 
@@ -135,6 +143,28 @@ function showStatus(message, statusType = "info") {
   }
 }
 
+function updateProgress(percent, status = "") {
+  const container = document.getElementById('progressContainer');
+  const bar = document.getElementById('progressBar');
+  const percentage = document.getElementById('progressPercentage');
+  const statusText = document.getElementById('progressStatus');
+  
+  if (!container || !bar || !percentage) return;
+  
+  container.classList.remove('hidden');
+  const clampedPercent = Math.min(Math.max(percent, 0), 100);
+  bar.style.width = `${clampedPercent}%`;
+  percentage.textContent = `${Math.round(clampedPercent)}%`;
+  if (status) {
+    statusText.textContent = status;
+  }
+}
+
+function hideProgress() {
+  const container = document.getElementById('progressContainer');
+  if (container) container.classList.add('hidden');
+}
+
 // ========================================================
 // TRACKING ENGINE: STORAGE TELEMETRY & CACHE MANAGER
 // ========================================================
@@ -152,7 +182,7 @@ async function updateStorageTelemetry() {
       if(sizeDisplay) sizeDisplay.textContent = `${data.size_mb} MB`;
       
       if(progressBar) {
-        const safetyCeiling = 500; // Trigger visualization warning line at 500MB scale metric
+        const safetyCeiling = 500;
         const fillPercentage = Math.min((data.size_mb / safetyCeiling) * 100, 100);
         progressBar.style.width = `${fillPercentage}%`;
       }
@@ -163,7 +193,7 @@ async function updateStorageTelemetry() {
 }
 
 async function purgeLocalCache() {
-  if (!confirm("Are you sure you want to permanently clear your local outputs folder? This removes all previously compiled video hardrenders, localized speech audios, and saved SRT files.")) return;
+  if (!confirm("Are you sure you want to permanently clear your local outputs folder?")) return;
   
   try {
     const res = await fetch("/system/storage", { method: "DELETE" });
@@ -176,7 +206,6 @@ async function purgeLocalCache() {
       const dlCard = document.getElementById('downloadLinksCard');
       if(dlCard) dlCard.classList.add('hidden');
       
-      // Force update analytics readout metrics immediately
       await updateStorageTelemetry();
     }
   } catch (err) {
@@ -192,8 +221,10 @@ function saveToHistory() {
     timestamp: new Date().toLocaleString('en-IN'),
     original: currentText.substring(0, 60) + (currentText.length > 60 ? '...' : ''),
     translated: currentTranslatedText.substring(0, 60) + (currentTranslatedText.length > 60 ? '...' : ''),
+    sourceLang: document.getElementById('sourceLang').value.toUpperCase(),
     targetLang: document.getElementById('targetLang').value.toUpperCase(),
-    fileName: currentFileName || 'Local Track'
+    fileName: currentFileName || 'Local Track',
+    confidence: currentConfidence
   };
   history.unshift(entry);
   localStorage.setItem('baif_history', JSON.stringify(history.slice(0, 5)));
@@ -212,7 +243,8 @@ function renderHistory() {
     <div class="bg-white p-3 rounded-xl text-xs border border-slate-200/60 shadow-2xs">
       <div class="flex justify-between text-[10px] text-slate-400 mb-1 font-medium">
         <span>${item.timestamp}</span>
-        <span class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-bold">${item.targetLang}</span>
+        <span class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-bold">${item.sourceLang} → ${item.targetLang}</span>
+        ${item.confidence ? `<span class="text-emerald-600">${Math.round(item.confidence * 100)}%</span>` : ''}
       </div>
       <div class="font-semibold text-slate-800 line-clamp-1 mb-0.5">${item.translated}</div>
       <div class="text-[10px] text-slate-400 truncate"><i class="fas fa-paperclip mr-0.5"></i> ${item.fileName}</div>
@@ -227,6 +259,7 @@ function clearAll() {
   currentSegments = [];
   currentFileName = "";
   currentSrtFileName = "";
+  currentConfidence = 0;
 
   document.getElementById('mediaFile').value = "";
   const fileNameEl = document.getElementById('fileName');
@@ -247,6 +280,8 @@ function clearAll() {
   
   document.getElementById('srtEditorCard').classList.add('hidden');
   document.getElementById('srtTimelineContainer').innerHTML = "";
+  
+  hideProgress();
 
   updateButtonStates();
 }
@@ -257,49 +292,117 @@ async function transcribe() {
   const fileInput = document.getElementById('mediaFile');
   if (!fileInput.files.length) return alert("Please map an operational audio or video media file first.");
 
-  const modelSize = document.getElementById('modelSize').value; // Track current compute config
+  // CRITICAL: Get the selected language value
+  const modelSize = document.getElementById('modelSize').value;
+  const languageSelect = document.getElementById('languageSelect');
+  const language = languageSelect.value;
+  const vadFilter = document.getElementById('vadFilter').value === 'true';
+
+  // DEBUG: Log what was selected
+  console.log("========================================");
+  console.log("🔍 SELECTED LANGUAGE:", language);
+  console.log("🔍 SELECTED MODEL:", modelSize);
+  console.log("🔍 VAD FILTER:", vadFilter);
+  console.log("========================================");
+
+  // Show what language is being used in the status
+  const langDisplay = language === 'auto' ? 'Auto-Detect' : language.toUpperCase();
+  showStatus(`🎯 Processing with language: ${langDisplay}...`, "info");
 
   currentFileName = fileInput.files[0].name;
   currentText = ""; 
   currentTranslatedText = "";
   currentSegments = [];
   currentSrtFileName = "";
+  currentConfidence = 0;
   renderResult();
   updateButtonStates();
 
-  showStatus(`Whisper AI Core loading [${modelSize.toUpperCase()}] matrix for ${currentFileName}...`, "info");
+  // Show progress bar
+  updateProgress(5, "Starting transcription...");
 
   const formData = new FormData();
   formData.append("file", fileInput.files[0]);
-  formData.append("model_size", modelSize); // Forward configuration state payload
+  formData.append("model_size", modelSize);
+  formData.append("vad_filter", String(vadFilter));
+  // CRITICAL: Send the language value directly from the dropdown
+  formData.append("language", language);
+
+  // DEBUG: Log what's being sent
+  console.log("📤 SENDING FormData:");
+  console.log("  - file:", fileInput.files[0].name);
+  console.log("  - model_size:", modelSize);
+  console.log("  - vad_filter:", String(vadFilter));
+  console.log("  - language:", language);
 
   try {
+    let progress = 10;
+    const progressInterval = setInterval(() => {
+      progress += Math.random() * 3;
+      if (progress > 85) progress = 85;
+      updateProgress(progress, "Processing audio... This may take a few minutes");
+    }, 1500);
+
     const res = await fetch("/transcribe", { method: "POST", body: formData });
+    clearInterval(progressInterval);
+    
     const data = await res.json();
     if (data.status === "success") {
+      updateProgress(100, "Transcription complete!");
+      
       currentText = data.transcribed_text;
       currentSegments = data.segments || [];
-      showStatus("✅ Whisper Compute Core Transcription Finished", "success");
+      currentLanguage = data.language || "en";
+      currentConfidence = data.average_confidence || 0;
+      
+      const langDisplay = currentLanguage.toUpperCase();
+      const confDisplay = currentConfidence ? Math.round(currentConfidence * 100) : 0;
+      const segmentCount = data.segment_count || currentSegments.length;
+      
+      showStatus(`✅ Transcription complete! Language: ${langDisplay}, Confidence: ${confDisplay}%, Segments: ${segmentCount}`, "success");
       renderResult();
       updateButtonStates();
       
-      // Sync telemetry reads on completion
       await updateStorageTelemetry();
+      
+      setTimeout(hideProgress, 3000);
     } else {
+      hideProgress();
       showStatus(`❌ Error: ${data.message}`, "error");
     }
   } catch (e) {
+    hideProgress();
     showStatus("❌ Transcription engine execution dropped or timed out.", "error");
   }
 }
 
 async function translateText() {
   if (!currentText) return alert("Missing base context transcript. Run transcription first.");
+  
+  const sourceLang = document.getElementById('sourceLang').value;
   const targetLang = document.getElementById('targetLang').value;
-  showStatus(`Loading local HuggingFace Pipeline Transformer for target syntax: [${targetLang.toUpperCase()}]...`, "info");
+  
+  // If auto-detect and target is English, we need to translate
+  if (sourceLang === "auto" && targetLang === "en") {
+    // We'll let the backend detect the source language
+  }
+  
+  if (sourceLang === targetLang && sourceLang !== "auto") {
+    currentTranslatedText = currentText;
+    showStatus(`✅ Source and target languages are the same`, "success");
+    renderResult();
+    updateButtonStates();
+    saveToHistory();
+    return;
+  }
+  
+  const sourceDisplay = sourceLang === 'auto' ? 'Auto-Detect' : sourceLang.toUpperCase();
+  const targetDisplay = targetLang.toUpperCase();
+  showStatus(`🔄 Translating from ${sourceDisplay} to ${targetDisplay}...`, "info");
 
   const formData = new FormData();
   formData.append("text", currentText);
+  formData.append("source_lang", sourceLang);
   formData.append("target_lang", targetLang);
 
   try {
@@ -308,12 +411,13 @@ async function translateText() {
     if (data.status === "success") {
       currentTranslatedText = data.translated;
       
+      // Update segments with translated text
       const textSentences = currentTranslatedText.split(/(?<=[।.!?])\s+/);
       currentSegments.forEach((seg, i) => {
         if (textSentences[i]) seg.text = textSentences[i];
       });
       
-      showStatus(`✅ Translation complete to [${targetLang.toUpperCase()}]`, "success");
+      showStatus(`✅ Translation complete from ${data.source_lang.toUpperCase()} to ${data.target_lang.toUpperCase()}`, "success");
       renderResult();
       updateButtonStates();
       saveToHistory();
@@ -328,7 +432,7 @@ async function generateTTS() {
   if (!currentTranslatedText) return alert("Please process translation before building speech synthesis.");
   const targetLang = document.getElementById('targetLang').value;
 
-  showStatus("Executing hardware-accelerated speech synthesis command pipelines...", "info");
+  showStatus("🎤 Generating speech synthesis...", "info");
 
   const formData = new FormData();
   formData.append("text", currentTranslatedText);
@@ -338,12 +442,12 @@ async function generateTTS() {
     const res = await fetch("/tts", { method: "POST", body: formData });
     const data = await res.json();
     if (data.status === "success" && data.audio_url) {
-      showStatus("✅ Localized Audio Clip Created!", "success");
+      showStatus("✅ Audio clip created successfully!", "success");
       document.getElementById('mediaPreviews').classList.remove('hidden');
       
       const readableLang = targetLang === "en" ? "English" : targetLang === "hi" ? "Hindi" : "Marathi";
       document.getElementById('audioPlayer').innerHTML = `
-        <label class="text-[10px] font-bold text-emerald-600 block mb-1 uppercase tracking-wider">Synthesized ${readableLang} Voice Output</label>
+        <label class="text-[10px] font-bold text-emerald-600 block mb-1 uppercase tracking-wider">🎵 ${readableLang} Voice Output</label>
         <audio controls class="w-full rounded-lg bg-slate-50 border p-1"><source src="${data.audio_url}" type="audio/mp3"></audio>`;
         
       await updateStorageTelemetry();
@@ -395,7 +499,7 @@ async function saveSrtEdits() {
     if (inputEl) seg.text = inputEl.value;
   });
   
-  showStatus("Applying changes locally... Regenerating layout maps...", "info");
+  showStatus("Applying changes locally...", "info");
   await executeSrtGenerationBackend(true);
 }
 
@@ -408,7 +512,7 @@ async function executeSrtGenerationBackend(isSilentUpdate = false) {
   if (currentSegments.length === 0) return;
 
   if(!isSilentUpdate) {
-    showStatus("Calculating target language timestamps and packing subtitle data structure...", "info");
+    showStatus("📝 Generating SRT subtitle file...", "info");
   }
 
   const targetLang = document.getElementById('targetLang').value;
@@ -424,7 +528,7 @@ async function executeSrtGenerationBackend(isSilentUpdate = false) {
     if (data.status === "success") {
       currentSrtFileName = data.srt_url.split('/').pop();
       if(!isSilentUpdate) {
-        showStatus("✅ Structured SRT Matrix Compiled Successfully", "success");
+        showStatus("✅ SRT file generated successfully!", "success");
       }
       
       document.getElementById('downloadLinksCard').classList.remove('hidden');
@@ -445,14 +549,12 @@ async function executeSrtGenerationBackend(isSilentUpdate = false) {
 }
 
 async function burnSubtitles() {
-  // Sync changes instantly from DOM textarea rows before calculating FFmpeg targets
   currentSegments.forEach((seg, index) => {
     const inputEl = document.getElementById(`srt-input-${index}`);
     if (inputEl) seg.text = inputEl.value;
   });
 
-  // 1. Core Synchronization Warmup state
-  showStatus("Syncing final layout layers and compiling temporary operational tracks...", "info");
+  showStatus("🎬 Preparing to burn subtitles into video...", "info");
   await executeSrtGenerationBackend(true);
 
   if (!hasSrtFile()) return alert("Please build standard subtitle assets before firing burning routines.");
@@ -460,30 +562,31 @@ async function burnSubtitles() {
   const fileInput = document.getElementById('mediaFile');
   if (!fileInput.files.length) return alert("Original file trace is missing. Re-map media link.");
 
-  // 2. ENTER "UNDER PROCESSING" LOADING VISUAL STATE
   const burnBtn = document.getElementById('burnBtn');
   const originalBtnText = burnBtn.innerHTML;
   
   burnBtn.disabled = true;
-  burnBtn.innerHTML = `<i class="fas fa-circle-notch animate-spin mr-1.5"></i> Under Processing...`;
+  burnBtn.innerHTML = `<i class="fas fa-circle-notch animate-spin mr-1.5"></i> Processing Video...`;
   
-  showStatus("⏳ Processing high-intensity FFmpeg multi-pass overlay. Re-encoding video layers offline on laptop disk. Do not close app...", "info");
+  showStatus("⏳ FFmpeg rendering subtitles into video... This may take a few minutes.", "info");
 
   const formData = new FormData();
   formData.append("original_video", fileInput.files[0]);
   formData.append("srt_filename", currentSrtFileName);
+  formData.append("font_size", "28");
+  formData.append("font_color", "white");
 
   try {
     const res = await fetch("/burn_subtitles", { method: "POST", body: formData });
     const data = await res.json();
     
     if (data.status === "success") {
-      showStatus("✅ Video Burn Processing Executed Perfectly!", "success");
+      showStatus("✅ Video burn completed successfully!", "success");
       
       document.getElementById('downloadLinksCard').classList.remove('hidden');
       document.getElementById('burnedVideoLink').innerHTML = `
         <a href="${data.video_url}" download class="flex items-center justify-between bg-red-50 border border-red-200 text-red-800 text-xs px-4 py-3 rounded-xl hover:bg-red-100 transition font-semibold">
-          <span><i class="fas fa-film mr-1.5"></i> Download Embedded Subtitle Video</span>
+          <span><i class="fas fa-film mr-1.5"></i> Download Video with Subtitles</span>
           <i class="fas fa-download text-red-600"></i>
         </a>`;
       
@@ -496,24 +599,23 @@ async function burnSubtitles() {
   } catch (e) {
     showStatus("❌ Video hard rendering logic broke. Check system asset logs.", "error");
   } finally {
-    // 3. CLEANUP STATE MATRIX & FLUSH BUTTON LOCKS
     burnBtn.disabled = false;
     burnBtn.innerHTML = originalBtnText;
     updateButtonStates();
-    
-    // Always sync usage readouts whether render crashed or finished successfully
     await updateStorageTelemetry();
   }
 }
 
 function downloadTranslatedText() {
   if (!currentTranslatedText) return alert("No operational translation output is active.");
+  const sourceLang = document.getElementById('sourceLang').value;
   const targetLang = document.getElementById('targetLang').value;
   const blob = new Blob([currentTranslatedText], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `BAIF_Translated_${targetLang.toUpperCase()}_${currentFileName || 'document'}.txt`;
+  const sourceDisplay = sourceLang === 'auto' ? 'Auto' : sourceLang.toUpperCase();
+  a.download = `BAIF_Translated_${sourceDisplay}_to_${targetLang.toUpperCase()}_${currentFileName || 'document'}.txt`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -590,7 +692,14 @@ function stopRecording() {
 }
 
 async function uploadLiveRecording(file) {
-  const modelSize = document.getElementById('modelSize').value; // Read model preference for live stream
+  const modelSize = document.getElementById('modelSize').value;
+  const languageSelect = document.getElementById('languageSelect');
+  const language = languageSelect.value;
+  const vadFilter = document.getElementById('vadFilter').value === 'true';
+
+  console.log("========================================");
+  console.log("🔍 LIVE RECORDING - SELECTED LANGUAGE:", language);
+  console.log("========================================");
 
   currentFileName = file.name;
   currentText = ""; 
@@ -600,27 +709,58 @@ async function uploadLiveRecording(file) {
   renderResult();
   updateButtonStates();
 
-  showStatus(`Processing live stream through [${modelSize.toUpperCase()}] compute layers...`, "info");
+  showStatus(`🎙️ Processing live recording with Whisper ${modelSize}...`, "info");
+  
+  updateProgress(5, "Processing live recording...");
 
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("model_size", modelSize); // Send configuration field along with live capture blob
+  formData.append("model_size", modelSize);
+  formData.append("vad_filter", String(vadFilter));
+  formData.append("language", language);
+
+  // DEBUG: Log what's being sent
+  console.log("📤 SENDING FormData (Live Recording):");
+  console.log("  - file:", file.name);
+  console.log("  - model_size:", modelSize);
+  console.log("  - vad_filter:", String(vadFilter));
+  console.log("  - language:", language);
 
   try {
+    let progress = 10;
+    const progressInterval = setInterval(() => {
+      progress += Math.random() * 4;
+      if (progress > 85) progress = 85;
+      updateProgress(progress, "Transcribing live audio...");
+    }, 1000);
+
     const res = await fetch("/transcribe", { method: "POST", body: formData });
+    clearInterval(progressInterval);
+    
     const data = await res.json();
     if (data.status === "success") {
+      updateProgress(100, "Transcription complete!");
+      
       currentText = data.transcribed_text;
       currentSegments = data.segments || [];
-      showStatus("✅ Live clip safely transcribed inside system core memory structures", "success");
+      currentLanguage = data.language || "en";
+      currentConfidence = data.average_confidence || 0;
+      
+      const langDisplay = currentLanguage.toUpperCase();
+      const confDisplay = currentConfidence ? Math.round(currentConfidence * 100) : 0;
+      showStatus(`✅ Live recording transcribed! Language: ${langDisplay}, Confidence: ${confDisplay}%`, "success");
       renderResult();
       updateButtonStates();
       
       await updateStorageTelemetry();
+      
+      setTimeout(hideProgress, 3000);
     } else {
+      hideProgress();
       showStatus(`❌ Error processing live stream: ${data.message}`, "error");
     }
   } catch (e) {
+    hideProgress();
     showStatus("❌ Local processing of real-time speech dropped down.", "error");
   }
 }
@@ -629,7 +769,36 @@ document.addEventListener('DOMContentLoaded', () => {
   updateButtonStates();
   renderResult();
   renderHistory();
-  
-  // Initialize storage readout statistics immediately on application bootstrap
   updateStorageTelemetry();
+  
+  const langSelect = document.getElementById('languageSelect');
+  if (langSelect) {
+    langSelect.value = 'auto';
+  }
+  
+  console.log("✅ BAIF Translator loaded!");
+  console.log("📝 Select a language from the dropdown or use Auto-Detect");
+  
+  // Add event listener to log language selection changes
+  if (langSelect) {
+    langSelect.addEventListener('change', function() {
+      console.log("🔄 Language changed to:", this.value);
+    });
+  }
+  
+  // Add event listeners for source/target language changes
+  const sourceLang = document.getElementById('sourceLang');
+  const targetLang = document.getElementById('targetLang');
+  
+  if (sourceLang) {
+    sourceLang.addEventListener('change', function() {
+      console.log("🔄 Source language changed to:", this.value);
+    });
+  }
+  
+  if (targetLang) {
+    targetLang.addEventListener('change', function() {
+      console.log("🔄 Target language changed to:", this.value);
+    });
+  }
 });
